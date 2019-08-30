@@ -1,0 +1,75 @@
+version: '3.6'
+services:
+    couchbasenode1:
+        build: ./couchbase
+        hostname: CouchBaseNode1
+        container_name: CouchBaseNode1
+        restart: unless-stopped
+        networks: 
+            - couchbase
+        ports:
+            - "192.168.121.51:8091:8091"
+            - "192.168.121.51:8092:8092"
+            - "192.168.121.51:8093:8093"
+            - "192.168.121.51:8094:8094"
+            - "192.168.121.51:11210:11210"
+        environment:
+            CLUSTER_HOST: "CouchBaseNode1"
+            NETWORK: "couchbase-net"
+    
+    couchbasenode2:
+        build: ./couchbase
+        hostname: CouchBaseNode2
+        container_name: CouchBaseNode2
+        restart: unless-stopped
+        networks: 
+            - couchbase
+        ports:
+            - "192.168.121.52:8091:8091"
+            - "192.168.121.52:8092:8092"
+            - "192.168.121.52:8093:8093"
+            - "192.168.121.52:8094:8094"
+            - "192.168.121.52:11210:11210"      
+        environment:
+            CLUSTER_HOST: "CouchBaseNode1"
+            NETWORK: "couchbase-net"
+            
+    couchbasenode3:
+        build: ./couchbase
+        hostname: CouchBaseNode3
+        container_name: CouchBaseNode3
+        restart: unless-stopped
+        networks: 
+            - couchbase
+        ports:
+            - "192.168.121.53:8091:8091"
+            - "192.168.121.53:8092:8092"
+            - "192.168.121.53:8093:8093"
+            - "192.168.121.53:8094:8094"
+            - "192.168.121.53:11210:11210"  
+        environment:
+            CLUSTER_HOST: "CouchBaseNode1"
+            NETWORK: "couchbase-net"
+            
+    couchbasenode4:
+        build: ./couchbase
+        hostname: CouchBaseNode4
+        container_name: CouchBaseNode4
+        restart: unless-stopped
+        networks: 
+            - couchbase
+        ports:
+            - "192.168.121.54:8091:8091"
+            - "192.168.121.54:8092:8092"
+            - "192.168.121.54:8093:8093"
+            - "192.168.121.54:8094:8094"
+            - "192.168.121.54:11210:11210"
+        environment:
+            CLUSTER_HOST: "CouchBaseNode1"
+            NETWORK: "couchbase-net"
+            CLUSTER_REBALANCE: "true"
+            
+networks:
+  couchbase:
+    name: couchbase-net
+    driver: bridge
