@@ -25,7 +25,7 @@ namespace SimpleCQRS.API.IntegrationTest
         public WireupTests(EventStoreFixture fixture)
         {
             eventStoreConnection = fixture.StoreConnection;
-            client.BlockTillAvailable("http://localhost:53107/InventoryCommand/Add?name=rtes" + Guid.NewGuid());
+            client.BlockTillAvailable("http://localhost:53104/InventoryCommand/Add?name=rtes" + Guid.NewGuid());
         }
 
         // this test covers
@@ -33,7 +33,7 @@ namespace SimpleCQRS.API.IntegrationTest
         [Theory, AutoData]
         public async Task when_create_event_then_message_ends_up_in_in_store(Guid id, string itemName)
         {
-            var result = await client.PostAsync($"http://localhost:53107/InventoryCommand/Add?name={itemName}&id={id}", null);
+            var result = await client.PostAsync($"http://localhost:53104/InventoryCommand/Add?name={itemName}&id={id}", null);
             
             Assert.True(result.IsSuccessStatusCode);
             await Task.Delay(sleepMillisecondsDelay);
@@ -48,13 +48,13 @@ namespace SimpleCQRS.API.IntegrationTest
 
             dynamic jsonObject = JsonConvert.DeserializeObject<System.Dynamic.ExpandoObject>(jsonString);
 
-            Assert.Equal(id.ToString(), jsonObject.id);
+            Assert.Equal(id.ToString(), jsonObject.Id);
         }
 
         [Theory, AutoData]
         public async Task when_create_rename_event_then_message_ends_up_in_in_store(Guid id, string itemName)
         {
-            var result = await client.PostAsync($"http://localhost:53107/InventoryCommand/Add?name={itemName}&id={id}", null);
+            var result = await client.PostAsync($"http://localhost:53104/InventoryCommand/Add?name={itemName}&id={id}", null);
 
             Assert.True(result.IsSuccessStatusCode);
             await Task.Delay(sleepMillisecondsDelay);
@@ -69,7 +69,7 @@ namespace SimpleCQRS.API.IntegrationTest
 
             dynamic jsonObject = JsonConvert.DeserializeObject<System.Dynamic.ExpandoObject>(jsonString);
 
-            Assert.Equal(id.ToString(), jsonObject.id);
+            Assert.Equal(id.ToString(), jsonObject.Id);
         }
     }
 }

@@ -32,7 +32,7 @@ namespace SimpleCQRS.API.IntegrationTest
         {
             Task.Run( async () => await RunUntilPassed(async () =>
             {
-                var status = await client.GetAsync(url);
+                var status = await client.PostAsync(url,null); //FIxme should be get
                 if (status.IsSuccessStatusCode)
                     return true;
 

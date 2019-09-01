@@ -23,7 +23,7 @@ namespace SimpleCQRS.API.IntegrationTest
         public IntegrationTest(EventStoreFixture fixture)
         {
             eventStoreConnection = fixture.StoreConnection;
-            client.BlockTillAvailable("http://localhost:53107/InventoryCommand/Add?name=rtes" + Guid.NewGuid());
+            client.BlockTillAvailable("http://localhost:53104/InventoryCommand/Add?name=rtes" + Guid.NewGuid());
         }
 
         [Fact]
@@ -35,7 +35,7 @@ namespace SimpleCQRS.API.IntegrationTest
         [Theory, AutoData]
         public async Task when_create_event_then_its_in_store_in_correct_format(Guid id, string itemName)
         {
-            var result = await client.PostAsync($"http://localhost:53107/InventoryCommand/Add?name={itemName}&id={id}", null);
+            var result = await client.PostAsync($"http://localhost:53104/InventoryCommand/Add?name={itemName}&id={id}", null);
             
             Assert.True(result.IsSuccessStatusCode);
             await Task.Delay(sleepMillisecondsDelay);
@@ -47,7 +47,7 @@ namespace SimpleCQRS.API.IntegrationTest
                 .First();
             Assert.Single(streamResult.Events);
 
-            Assert.Equal(id.ToString(), evnt.id);
+            Assert.Equal(id.ToString(), evnt.Id);
         }
 
         //TODO stream test 
