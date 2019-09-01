@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>netcoreapp3.0</TargetFramework>
@@ -8,12 +8,6 @@
 
   <ItemGroup>
     <None Remove="setupdependencies.cmd" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Content Include="setupdependencies.cmd">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
   </ItemGroup>
 
   <ItemGroup>

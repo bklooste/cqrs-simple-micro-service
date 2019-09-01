@@ -25,8 +25,8 @@ namespace SimpleCQRS.API
         {
             services.AddControllers();
 
-            connection = EventStoreConnection.Create(Configuration.GetConnectionString("EventStoreConnection"));
-            connection.ConnectAsync().Wait();
+            var connectionString = Configuration.GetConnectionString("EventStoreConnection");
+            connection = EventStoreConnection.Create(connectionString);
             services.AddSingleton<IEventStoreConnection>(connection);
 
             services.AddSwaggerGen(c =>
@@ -40,6 +40,7 @@ namespace SimpleCQRS.API
             if (env.IsDevelopment())
                 app.UseDeveloperExceptionPage();
 
+            connection.ConnectAsync().Wait();
             connection.Disconnected += (sender, args) => appLifeTime.StopApplication();
 
             app.UseRouting();
