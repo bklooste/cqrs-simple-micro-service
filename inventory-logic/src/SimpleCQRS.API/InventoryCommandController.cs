@@ -25,9 +25,11 @@ namespace SimpleCQRS.API
         }
 
         [HttpPost]
-        public async Task<ActionResult> Add(string name)
+        public async Task<ActionResult> Add(string name, Guid? id = null)
         {
-            var bl = new InventoryItemLogic(Guid.NewGuid(), name);
+            if (id == null)
+                id = Guid.NewGuid();
+            var bl = new InventoryItemLogic(id.Value, name);
             await connection.Save(bl, ExpectedVersion.NoStream);
             return NoContent();
         }

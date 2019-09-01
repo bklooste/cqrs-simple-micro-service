@@ -1,7 +1,8 @@
 ﻿using EventStore.ClientAPI;
 using System;
 
-namespace SimpleCQRS.API.Test
+
+namespace SimpleCQRS.API.IntegrationTest
 {
     public class EventStoreFixture : IDisposable
     {

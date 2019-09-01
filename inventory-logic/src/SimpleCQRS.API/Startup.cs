@@ -6,11 +6,14 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.OpenApi.Models;
+using System;
 
 namespace SimpleCQRS.API
 {
     public class Startup
     {
+        IEventStoreConnection connection;
+
         public Startup(IConfiguration configuration)
         {
             Configuration = configuration;
@@ -21,7 +24,10 @@ namespace SimpleCQRS.API
         public void ConfigureServices(IServiceCollection services)
         {
             services.AddControllers();
-            services.AddSingleton<IEventStoreConnection>(EventStoreConnection.Create(Configuration.GetConnectionString("EventStoreConnection")));
+
+            connection = EventStoreConnection.Create(Configuration.GetConnectionString("EventStoreConnection"));
+            connection.ConnectAsync().Wait();
+            services.AddSingleton<IEventStoreConnection>(connection);
 
             services.AddSwaggerGen(c =>
             {
@@ -29,10 +35,12 @@ namespace SimpleCQRS.API
             });
         }
 
-        public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
+        public void Configure(IApplicationBuilder app, IWebHostEnvironment env, IHostApplicationLifetime appLifeTime)
         {
             if (env.IsDevelopment())
                 app.UseDeveloperExceptionPage();
+
+            connection.Disconnected += (sender, args) => appLifeTime.StopApplication();
 
             app.UseRouting();
 
@@ -50,5 +58,6 @@ namespace SimpleCQRS.API
                 endpoints.MapControllers();
             });
         }
+
     }
 }

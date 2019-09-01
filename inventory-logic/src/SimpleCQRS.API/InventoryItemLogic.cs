@@ -12,13 +12,15 @@ namespace SimpleCQRS.API
 
         public InventoryItemLogic(Guid id, string name)
         {
+            if (string.IsNullOrEmpty(name))
+                throw new ArgumentException("name is not valid");
             ApplyChange(new InventoryItemCreated(id, name));
         }
 
         public void ChangeName(string newName)
         {
             if (string.IsNullOrEmpty(newName))
-                throw new ArgumentException("newName");
+                throw new ArgumentException("newName is not valid");
             ApplyChange(new InventoryItemRenamed(id, newName));
         }
 
