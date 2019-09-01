@@ -1,4 +1,0 @@
-docker run --name eventstore-node -it -p 2113:2113 -p 1113:1113 eventstore/eventstore
-docker run -dt -e "DOTNET_USE_POLLING_FILE_WATCHER=1" - -p 53104:80 --entrypoint tail simplecqrs-api:dev -f /dev/null
-docker run -dt -e "DOTNET_USE_POLLING_FILE_WATCHER=1" - -p 53105:80 --entrypoint tail simplecqrs-view:dev -f /dev/null
-timeout 15
