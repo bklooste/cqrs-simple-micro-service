@@ -12,6 +12,8 @@ using Xunit;
 
 namespace SimpleCQRS.API.IntegrationTest
 {
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE1006:Naming Styles", Justification = "Long test names")]
+
     //We also need to test wiring up
     // this provides nearly all our this calls that code coverage as well as testing configuration 
     // Note the actual message correctness is tested in unit tests
@@ -31,7 +33,7 @@ namespace SimpleCQRS.API.IntegrationTest
         // this test covers
         // json convert called the correct message is written to the right place 
         [Theory, AutoData]
-        public async Task when_create_event_then_message_ends_up_in_in_store(Guid id, string itemName)
+         public async Task when_create_event_then_message_ends_up_in_in_store(Guid id, string itemName)
         {
             var result = await client.PostAsync($"http://localhost:53104/InventoryCommand/Add?name={itemName}&id={id}", null);
             

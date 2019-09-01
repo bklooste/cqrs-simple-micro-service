@@ -12,6 +12,8 @@ using Xunit;
 
 namespace SimpleCQRS.API.IntegrationTest
 {
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE1006:Naming Styles", Justification = "Long test names")]
+
 
     [Trait("Integration", "Local")]
     public class IntegrationTest : IClassFixture<EventStoreFixture>

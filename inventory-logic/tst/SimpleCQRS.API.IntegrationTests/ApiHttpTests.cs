@@ -1,17 +1,14 @@
 using System;
-using System.Linq;
 using System.Net.Http;
-using System.Text;
-using System.Threading;
 using System.Threading.Tasks;
 
 using AutoFixture.Xunit2;
-using EventStore.ClientAPI;
-using Newtonsoft.Json;
 using Xunit;
 
 namespace SimpleCQRS.API.IntegrationTest
 {
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE1006:Naming Styles", Justification = "Long test names")]
+
 
     [Trait("Integration", "Local")]
     public class ApiHttpTests 

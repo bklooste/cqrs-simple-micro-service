@@ -27,11 +27,19 @@ namespace SimpleCQRS.API
         [HttpPost]
         public async Task<ActionResult> Add(string name, Guid? id = null)
         {
-            if (id == null)
-                id = Guid.NewGuid();
-            var bl = new InventoryItemLogic(id.Value, name);
-            await connection.Save(bl, ExpectedVersion.NoStream);
-            return NoContent();
+
+            try
+            {
+                if (id == null)
+                    id = Guid.NewGuid();
+                var bl = new InventoryItemLogic(id.Value, name);
+                await connection.Save(bl, ExpectedVersion.NoStream);
+                return NoContent();
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(ex.Message);
+            }
         }
 
         [HttpPost]
@@ -52,19 +60,6 @@ namespace SimpleCQRS.API
                 return BadRequest(ex.Message);
             }
         }
-
-        //[HttpPost]
-        //public async Task<ActionResult> ChangeNameWithoutVersion(Guid id, string name)
-        //{
-        //    var item = await connection.GetById<InventoryItem>(id);
-
-        //    lock (item) //all uses must use lock if clients dont manage concurrency
-        //    {
-        //        item.ChangeName(name);
-        //        Task.Run(async () => await connection.Save(item, ExpectedVersion.NoStream)).Wait(); // do we lock the object till its persisted ?
-        //    }
-        //    return NoContent();
-        //}
 
         [HttpPost]
         public async Task<ActionResult> Deactivate(Guid id, int version)
