@@ -18,13 +18,13 @@ namespace SimpleCQRS.API.IntegrationTest
     // this provides nearly all our this calls that code coverage as well as testing configuration 
     // Note the actual message correctness is tested in unit tests
     [Trait("Integration", "Local")]
-    public class WireupTests : IClassFixture<EventStoreFixture>
+    public class WireupTests : IClassFixture<IntegrationTestFixture>
     {
         readonly HttpClient client = new System.Net.Http.HttpClient();
         readonly IEventStoreConnection eventStoreConnection;
         readonly TimeSpan sleepMillisecondsDelay = TimeSpan.FromMilliseconds(1000);
 
-        public WireupTests(EventStoreFixture fixture)
+        public WireupTests(IntegrationTestFixture fixture)
         {
             eventStoreConnection = fixture.StoreConnection;
             client.BlockTillAvailable("http://localhost:53104/InventoryCommand/Add?name=rtes" + Guid.NewGuid());

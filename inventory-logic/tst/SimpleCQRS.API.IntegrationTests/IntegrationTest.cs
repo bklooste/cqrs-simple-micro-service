@@ -16,13 +16,13 @@ namespace SimpleCQRS.API.IntegrationTest
 
 
     [Trait("Integration", "Local")]
-    public class IntegrationTest : IClassFixture<EventStoreFixture>
+    public class IntegrationTest : IClassFixture<IntegrationTestFixture>
     {
         readonly HttpClient client = new System.Net.Http.HttpClient();
         readonly IEventStoreConnection eventStoreConnection;
         readonly TimeSpan sleepMillisecondsDelay = TimeSpan.FromMilliseconds(1000);
 
-        public IntegrationTest(EventStoreFixture fixture)
+        public IntegrationTest(IntegrationTestFixture fixture)
         {
             eventStoreConnection = fixture.StoreConnection;
             client.BlockTillAvailable("http://localhost:53104/InventoryCommand/Add?name=rtes" + Guid.NewGuid());
