@@ -52,6 +52,20 @@ namespace SimpleCQRS.API.IntegrationTest
             Assert.Equal(id.ToString(), evnt.Id);
         }
 
-        //TODO stream test 
+        [Theory, AutoData]
+        public async Task when_create_event_then_its_in_category_stream_for_read_model(Guid id, string itemName)
+        {
+            var result = await client.PostAsync($"http://localhost:53104/InventoryCommand/Add?name={itemName}&id={id}", null);
+
+            Assert.True(result.IsSuccessStatusCode);
+            await Task.Delay(sleepMillisecondsDelay);
+            var streamName = $"$ce-inventory";
+            var streamResult = await eventStoreConnection.ReadStreamEventsBackwardAsync(streamName, StreamPosition.End , 20, true);
+            var evntJson = streamResult.Events
+                          .Select(x => Encoding.UTF8.GetString(x.Event.Data)).ToList();
+
+            Assert.Contains(evntJson, json => json.Contains(id.ToString()));
+        }
+
     }
 }
