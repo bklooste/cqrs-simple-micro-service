@@ -25,7 +25,7 @@ namespace SimpleCQRS.Views.IntegrationTest
         [Theory, AutoData]
         public async Task when_get_unknown_item_then_return_404(Guid id)
         {
-            var result = await client.GetAsync($"items/{id}");
+            using var result = await client.GetAsync($"items/{id}");
 
             Assert.Equal(System.Net.HttpStatusCode.NotFound, result.StatusCode);
         }
@@ -34,15 +34,15 @@ namespace SimpleCQRS.Views.IntegrationTest
         [Fact]
         public async Task when_get_http2_then_ok()
         {
-            var http2Client = new System.Net.Http.HttpClient
+            using var http2Client = new System.Net.Http.HttpClient
             {
                 DefaultRequestVersion = new Version(2, 0),
                 BaseAddress = client.BaseAddress
             };
 
-            var result = await client.GetAsync($"items/");
+            var result = await http2Client.GetAsync($"items/");
 
-            Assert.Equal(System.Net.HttpStatusCode.NotFound, result.StatusCode);
+            Assert.Equal(System.Net.HttpStatusCode.OK, result.StatusCode);
         }
     }
 }

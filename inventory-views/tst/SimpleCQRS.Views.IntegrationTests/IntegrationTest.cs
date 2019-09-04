@@ -55,11 +55,12 @@ namespace SimpleCQRS.Views.IntegrationTest
             await eventStoreConnection.AppendToStreamAsync($"inventory-InventoryItemLogic{id}", ExpectedVersion.NoStream, eventData);
             await Task.Delay(sleepMillisecondsDelay);
 
-            var jsonResponse = await client.GetStringAsync("items/{id}");
+            var response = await client.GetAsync($"items/{id}");
+            var jsonResponse = await client.GetStringAsync($"items/{id}");
 
             dynamic itemDetail = JsonConvert.DeserializeObject<System.Dynamic.ExpandoObject>(jsonResponse);
 
-            Assert.Equal(id.ToString(), itemDetail.Id);
+            Assert.Equal(id.ToString(), itemDetail.id);
             Assert.Equal(itemName, itemDetail.name);
         }
 

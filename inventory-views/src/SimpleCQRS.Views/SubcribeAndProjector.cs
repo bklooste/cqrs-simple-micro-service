@@ -32,6 +32,7 @@ namespace SimpleCQRS.Views
         public void ConfigureAndStart(IEventStoreConnection connection, IHostApplicationLifetime applicationLifeTime)
         {
             this.subscriber = connection.SubscribeToStreamFrom(CategoryStreamName, StreamPosition.Start, CatchUpSubscriptionSettings.Default, Project, null, SubscriptionDropped);
+
             this.appLifeTime = applicationLifeTime;
         }
 
@@ -43,11 +44,19 @@ namespace SimpleCQRS.Views
 
         Task Project(EventStoreCatchUpSubscription subscription, ResolvedEvent resolvedEvent)
         {
-            dynamic evnt = ToEvent(resolvedEvent);
+            try
+            {
+                dynamic evnt = ToEvent(resolvedEvent);
+                //if you have many or do IO can do in parallel or asyc
+                inventoryListView.Handle(evnt);
+                inventoryView.Handle(evnt);
+            }
+            catch (Exception ex)
+            {
+                //If you dont ignore your systems stops, processing is best effort and unlike commands cannot be rejected
+                logger.LogWarning(ex, $"Ignored message {resolvedEvent.Event.EventType} after best effort processing");
+            }
 
-            //if you have many or do IO can do in parallel or asyc
-            inventoryListView.Handle(evnt); 
-            inventoryView.Handle(evnt);
             return Task.CompletedTask;
         }
 

@@ -15,29 +15,27 @@ namespace SimpleCQRS.Views
 {
     public class Startup
     {
+        IEventStoreConnection connection;
+
+        public IConfiguration Configuration { get; }
+
         public Startup(IConfiguration configuration)
         {
             Configuration = configuration;
         }
-
-        public IConfiguration Configuration { get; }
 
         public void ConfigureServices(IServiceCollection services)
         {
             services.AddControllers();
             services.AddSingleton<IEventStoreConnection>(EventStoreConnection.Create(Configuration.GetConnectionString("EventStoreConnection")));
 
-            var connection = EventStoreConnection.Create(Configuration.GetConnectionString("EventStoreConnection"));
+            this.connection = EventStoreConnection.Create(Configuration.GetConnectionString("EventStoreConnection"));
             var inventoryListView = new InventoryListView();
             var inventoryView = new InventoryItemDetailView();
 
             services.AddSingleton<IReadOnlyList<InventoryItemListDto>> (inventoryListView.Repository); 
             services.AddSingleton<IReadOnlyDictionary<Guid, InventoryItemDetailsDto>>(inventoryView.Repository);
-
             services.AddSingleton(svc =>  new SubcribeAndProjector(inventoryListView, inventoryView, svc.GetRequiredService<ILogger<SubcribeAndProjector>>()) );
-
-
-
 
             services.AddSwaggerGen(c =>
             {
@@ -47,7 +45,7 @@ namespace SimpleCQRS.Views
 
 
 
-        public void Configure(IApplicationBuilder app, IWebHostEnvironment env, SubcribeAndProjector subcribeAndProjector, IEventStoreConnection connection, IHostApplicationLifetime applicationLifeTime)
+        public void Configure(IApplicationBuilder app, IWebHostEnvironment env, SubcribeAndProjector subcribeAndProjector, IHostApplicationLifetime applicationLifeTime)
         {
             if (env.IsDevelopment())
             {
@@ -73,8 +71,8 @@ namespace SimpleCQRS.Views
             });
 
             // if using a dB make the projection a 3rd generic host service.
-          // subcribeAndProjector.ConfigureAndStart(connection, applicationLifeTime);
-
+            connection.ConnectAsync().Wait();
+            subcribeAndProjector.ConfigureAndStart(this.connection, applicationLifeTime);
         }
     }
 }
