@@ -27,7 +27,9 @@ namespace SimpleCQRS.API.IntegrationTest
         public WireupTests(IntegrationTestFixture fixture)
         {
             eventStoreConnection = fixture.StoreConnection;
-            client.BlockTillAvailable("http://localhost:53104/InventoryCommand/Add?name=rtes" + Guid.NewGuid());
+            client.BaseAddress = new Uri($"http://localhost:{fixture.Port}/InventoryCommand/");
+
+            this.client.BlockGetTillAvailable("IsAvailable");
         }
 
         // this test covers

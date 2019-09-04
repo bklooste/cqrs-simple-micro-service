@@ -28,11 +28,11 @@ namespace SimpleCQRS.API.IntegrationTest
             }
         }
 
-        public static void BlockTillAvailable(this HttpClient client, string url)
+        public static void BlockGetTillAvailable(this HttpClient client, string url)
         {
             Task.Run( async () => await RunUntilPassed(async () =>
             {
-                var status = await client.PostAsync(url,null); //FIxme should be get
+                var status = await client.GetAsync(url); 
                 if (status.IsSuccessStatusCode)
                     return true;
 

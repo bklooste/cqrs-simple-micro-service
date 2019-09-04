@@ -16,9 +16,9 @@ namespace SimpleCQRS.API.IntegrationTest
 
         public ApiHttpTests(IntegrationTestFixture fixture)
         {
-            client.BaseAddress = new Uri($"http://localhost:{fixture.Port}/InventoryCommand");
+            client.BaseAddress = new Uri($"http://localhost:{fixture.Port}/InventoryCommand/");
             
-            this.client.BlockTillAvailable("/Add?name=rtes" + Guid.NewGuid());
+            this.client.BlockGetTillAvailable("IsAvailable");
         }
 
         // if the service does security we can and should test here.
@@ -26,7 +26,7 @@ namespace SimpleCQRS.API.IntegrationTest
         [Theory, AutoData]
         public async Task when_create_event_then_its_in_store_in_correct_format(Guid id)
         {
-            var result = await client.PostAsync($"/Add?name=&id={id}", null);
+            var result = await client.PostAsync($"Add?name=&id={id}", null);
             
             Assert.Equal(System.Net.HttpStatusCode.BadRequest, result.StatusCode);
         }

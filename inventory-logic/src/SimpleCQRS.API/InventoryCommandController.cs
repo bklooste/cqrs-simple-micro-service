@@ -117,6 +117,7 @@ namespace SimpleCQRS.API
                 return BadRequest(ex.Message);
             }
         }
+
         [HttpGet]
         public ActionResult IsAvailable()
         {

@@ -19,7 +19,7 @@ namespace SimpleCQRS.API.IntegrationTest
         {
             var configDefaults = new Dictionary<string, string>
             {
-                {"ConnectionStrings:EventStoreConnection", "ConnectTo=tcp://admin:changeit@127.0.0.1:1113"},
+                {"ConnectionStrings:EventStoreConnection", "ConnectTo=tcp://admin:changeit@127.0.0.1:1114"},
                 {"InventoryLogicServicePort", "53104"}
             };
 
