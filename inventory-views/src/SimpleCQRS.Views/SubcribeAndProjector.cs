@@ -17,10 +17,10 @@ namespace SimpleCQRS.Views
 
         readonly InventoryListView inventoryListView;
         readonly InventoryItemDetailView inventoryView;
+        readonly Microsoft.Extensions.Logging.ILogger logger;
 
         IHostApplicationLifetime appLifeTime;
         EventStoreStreamCatchUpSubscription subscriber;
-        Microsoft.Extensions.Logging.ILogger logger;
 
         public SubcribeAndProjector(InventoryListView inventoryListView, InventoryItemDetailView inventoryView, Microsoft.Extensions.Logging.ILogger logger)
         {
