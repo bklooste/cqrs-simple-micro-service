@@ -14,22 +14,18 @@ namespace SimpleCQRS.Views.IntegrationTest
 {
 
     [Trait("Integration", "Local")]
-    public class IntegrationTest : IClassFixture<EventStoreFixture>
+    public class IntegrationTest : IClassFixture<IntegrationTestFixture>
     {
         readonly HttpClient client = new System.Net.Http.HttpClient();
         readonly IEventStoreConnection eventStoreConnection;
         readonly TimeSpan sleepMillisecondsDelay = TimeSpan.FromMilliseconds(1000);
 
-        public IntegrationTest(EventStoreFixture fixture)
+        public IntegrationTest(IntegrationTestFixture fixture)
         {
             eventStoreConnection = fixture.StoreConnection;
-            client.BlockTillAvailable("http://localhost:53107/InventoryCommand/Add?name=rtes" + Guid.NewGuid());
-        }
+            client.BaseAddress = new Uri($"http://localhost:{fixture.Port}/items/");
 
-        [Fact]
-        public void when_receive_item_then_it_has_exchange_rate_from_feed()
-        {
-            //TODO We have only 1 external dependency , writing to the event store , which is mainly covered by wire up but leave one test for expansion 
+            this.client.BlockGetTillAvailable("IsAvailable");
         }
 
         [Theory, AutoData]

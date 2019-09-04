@@ -28,7 +28,7 @@ namespace SimpleCQRS.Views.IntegrationTest
             }
         }
 
-        public static void BlockTillAvailable(this HttpClient client, string url)
+        public static void BlockGetTillAvailable(this HttpClient client, string url)
         {
             Task.Run( async () => await RunUntilPassed(async () =>
             {

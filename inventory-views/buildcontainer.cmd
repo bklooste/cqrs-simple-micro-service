@@ -1,2 +1,2 @@
 dotnet build -c Release
-docker build -t simplecqrsapi -f src\SimpleCQRS.Views\Dockerfile  .
+docker build -t simplecqrsviews -f src\SimpleCQRS.Views\Dockerfile  .
