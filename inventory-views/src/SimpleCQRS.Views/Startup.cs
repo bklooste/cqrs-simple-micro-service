@@ -9,7 +9,6 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.OpenApi.Models;
 
 using EventStore.ClientAPI;
-using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 
 namespace SimpleCQRS.Views

@@ -12,9 +12,10 @@ using Xunit;
 
 namespace SimpleCQRS.Views.IntegrationTest
 {
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE1006:Naming Styles", Justification = "Long test names")]
 
     [Trait("Integration", "Local")]
-    public class IntegrationTest : IClassFixture<IntegrationTestFixture>
+    public class IntegrationTest: IClassFixture<IntegrationTestFixture>
     {
         readonly HttpClient client = new System.Net.Http.HttpClient();
         readonly IEventStoreConnection eventStoreConnection;
@@ -23,29 +24,45 @@ namespace SimpleCQRS.Views.IntegrationTest
         public IntegrationTest(IntegrationTestFixture fixture)
         {
             eventStoreConnection = fixture.StoreConnection;
-            client.BaseAddress = new Uri($"http://localhost:{fixture.Port}/items/");
+            client.BaseAddress = new Uri($"http://localhost:{fixture.Port}/");
 
-            this.client.BlockGetTillAvailable("IsAvailable");
+            this.client.BlockGetTillAvailable("items/");
         }
 
         [Theory, AutoData]
-        public async Task when_create_event_then_its_in_store_in_correct_format(Guid id, string itemName)
+        public async Task when_create_event_then_its_in_list_view(Guid id, string itemName)
         {
-            var result = await client.PostAsync($"http://localhost:53107/InventoryCommand/Add?name={itemName}&id={id}", null);
-            
-            Assert.True(result.IsSuccessStatusCode);
+            string json = $"{{\"Id\": \"{id}\",\"Name\": \"{itemName}\", \"Version\": 0}}";
+            var jsonBytes = Encoding.UTF8.GetBytes(json);
+            var eventData = new EventData(Guid.NewGuid(), "SimpleCQRS.InventoryItemCreated", true, jsonBytes, null);
+            await eventStoreConnection.AppendToStreamAsync($"inventory-InventoryItemLogic{id}", ExpectedVersion.NoStream, eventData);
             await Task.Delay(sleepMillisecondsDelay);
-            var streamName = $"inventory-InventoryItemLogic{id}";
-            var streamResult = await eventStoreConnection.ReadStreamEventsForwardAsync(streamName, 0, 1000, true);
-            var evnt = streamResult.Events
-                .Select(x => Encoding.UTF8.GetString(x.Event.Data))
-                .Select(json => (dynamic) JsonConvert.DeserializeObject<System.Dynamic.ExpandoObject>(json))
-                .First();
-            Assert.Single(streamResult.Events);
 
-            Assert.Equal(id.ToString(), evnt.id);
+            var response = await client.GetStringAsync("items/");
+
+            //We dont test json convert and .net core mvc conversion, end to end tests will cover that as well.
+            // just that the test doest break as schema is changed
+            Assert.Contains(id.ToString(), response);
+            Assert.Contains(itemName.ToString(), response);
         }
 
-        //TODO stream test 
+        [Theory, AutoData]
+        public async Task when_create_event_then_its_in_item_detail_view(Guid id, string itemName)
+        {
+            string json = $"{{\"Id\": \"{id}\",\"Name\": \"{itemName}\", \"Version\": 0}}";
+            var jsonBytes = Encoding.UTF8.GetBytes(json);
+            var eventData = new EventData(Guid.NewGuid(), "SimpleCQRS.InventoryItemCreated", true, jsonBytes, null);
+            await eventStoreConnection.AppendToStreamAsync($"inventory-InventoryItemLogic{id}", ExpectedVersion.NoStream, eventData);
+            await Task.Delay(sleepMillisecondsDelay);
+
+            var jsonResponse = await client.GetStringAsync("items/{id}");
+
+            dynamic itemDetail = JsonConvert.DeserializeObject<System.Dynamic.ExpandoObject>(jsonResponse);
+
+            Assert.Equal(id.ToString(), itemDetail.Id);
+            Assert.Equal(itemName, itemDetail.name);
+        }
+
+
     }
 }

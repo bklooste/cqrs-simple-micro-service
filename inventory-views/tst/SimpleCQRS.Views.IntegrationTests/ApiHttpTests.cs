@@ -1,26 +1,22 @@
 using System;
-using System.Linq;
 using System.Net.Http;
-using System.Text;
-using System.Threading;
 using System.Threading.Tasks;
 
 using AutoFixture.Xunit2;
-using EventStore.ClientAPI;
-using Newtonsoft.Json;
 using Xunit;
 
 namespace SimpleCQRS.Views.IntegrationTest
 {
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE1006:Naming Styles", Justification = "Long test names")]
 
     [Trait("Integration", "Local")]
-    public class ApiHttpTests 
+    public class ApiHttpTests: IClassFixture<IntegrationTestFixture>
     {
         readonly HttpClient client = new System.Net.Http.HttpClient();
 
         public ApiHttpTests(IntegrationTestFixture fixture)
         {
-            client.BaseAddress = new Uri($"http://localhost:{fixture.Port}/InventoryCommand/");
+            client.BaseAddress = new Uri($"http://localhost:{fixture.Port}/");
 
             this.client.BlockGetTillAvailable("items/");
         }
@@ -30,7 +26,22 @@ namespace SimpleCQRS.Views.IntegrationTest
         public async Task when_get_unknown_item_then_return_404(Guid id)
         {
             var result = await client.GetAsync($"items/{id}");
-            
+
+            Assert.Equal(System.Net.HttpStatusCode.NotFound, result.StatusCode);
+        }
+
+
+        [Fact]
+        public async Task when_get_http2_then_ok()
+        {
+            var http2Client = new System.Net.Http.HttpClient
+            {
+                DefaultRequestVersion = new Version(2, 0),
+                BaseAddress = client.BaseAddress
+            };
+
+            var result = await client.GetAsync($"items/");
+
             Assert.Equal(System.Net.HttpStatusCode.NotFound, result.StatusCode);
         }
     }

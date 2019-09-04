@@ -10,10 +10,10 @@ namespace SimpleCQRS.Views
     public class InventoryController : ControllerBase
     {
         readonly ILogger<InventoryController> logger;
-        readonly IList<InventoryItemListDto> inventoryListRepository; 
+        readonly IReadOnlyList<InventoryItemListDto> inventoryListRepository; 
         readonly IReadOnlyDictionary<Guid, InventoryItemDetailsDto> inventoryDetailRepository;
 
-        public InventoryController(ILogger<InventoryController> logger, IList<InventoryItemListDto> inventoryListRepository, IReadOnlyDictionary<Guid, InventoryItemDetailsDto> inventoryDetailRepository)
+        public InventoryController(ILogger<InventoryController> logger, IReadOnlyList<InventoryItemListDto> inventoryListRepository, IReadOnlyDictionary<Guid, InventoryItemDetailsDto> inventoryDetailRepository)
         {
             this.logger = logger;
             this.inventoryDetailRepository = inventoryDetailRepository;
@@ -37,6 +37,7 @@ namespace SimpleCQRS.Views
             if (inventoryDetailRepository.TryGetValue(id, out var item))
                 return Ok(item);
 
+            logger.LogDebug($"received request for unknown id {item}");
             return NotFound();
         }
     }
