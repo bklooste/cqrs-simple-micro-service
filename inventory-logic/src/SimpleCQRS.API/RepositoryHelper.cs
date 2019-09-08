@@ -13,17 +13,17 @@ namespace SimpleCQRS.API
     {
         const string CategoryStreamPrefix = "inventory-";
 
+        static string GetStreamName(string name, Guid id)
+        {
+            return CategoryStreamPrefix + name + id.ToString();
+        }
+
         public static async Task Save(this IEventStoreConnection connection, AggregateRoot aggregate, int expectedVersion)
         {
             var streamName = GetStreamName(aggregate.GetType().Name, aggregate.Id);
             var storeEvents = aggregate.GetUncommittedChanges().Select(x => x.ToStoreEvent());
             await connection.AppendToStreamAsync(streamName, expectedVersion, storeEvents);
-        }
-
-        static string GetStreamName(string name, Guid id)
-        {
-
-            return CategoryStreamPrefix + name + id.ToString();
+            aggregate.MarkChangesAsCommitted(); 
         }
 
         public static async Task<T> GetById<T>(this IEventStoreConnection connection, Guid id) where T : AggregateRoot, new()
