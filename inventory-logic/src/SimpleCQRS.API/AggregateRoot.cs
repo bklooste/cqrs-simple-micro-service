@@ -2,14 +2,11 @@
 using System;
 using System.Collections.Generic;
 
-
-
 namespace SimpleCQRS.API
 {
     public abstract class AggregateRoot
     {
-        private readonly List<Event> changes = new List<Event>();
-
+        readonly List<Event> changes = new List<Event>();
         public abstract Guid Id { get; }
         public int Version { get; internal set; }
 

@@ -6,6 +6,8 @@ using Xunit;
 
 namespace SimpleCQRS.API.Test
 {
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE1006:Naming Styles", Justification = "Long test names")]
+
     // pure black test methods with no dependencies
     // logic can be well tested and when changing only actual logic that fails will change
     // coverage will be extremely high with all wiring comming from integration tests

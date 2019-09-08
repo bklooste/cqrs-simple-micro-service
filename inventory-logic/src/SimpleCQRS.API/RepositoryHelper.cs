@@ -32,7 +32,7 @@ namespace SimpleCQRS.API
 
             var events = await connection.ReadStreamEventsForwardAsync(streamName, 0, 4000, false);
             if (events.Status == SliceReadStatus.StreamNotFound)
-                return null;
+                throw new AggregateNotFoundException($"id {id} does not exist");
 
             var obj = new T();//lots of ways to do this
             obj.LoadsFromHistory(events.Events.Select(x => x.ToEvent()));

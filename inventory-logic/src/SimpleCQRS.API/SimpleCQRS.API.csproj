@@ -4,6 +4,7 @@
     <TargetFramework>netcoreapp3.0</TargetFramework>
     <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
     <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
     <DockerfileContext>..\..</DockerfileContext>
   </PropertyGroup>
 

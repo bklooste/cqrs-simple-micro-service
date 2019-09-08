@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace SimpleCQRS.Views
 {
@@ -17,7 +18,7 @@ namespace SimpleCQRS.Views
 
         public void Handle(InventoryItemRenamed message)
         {
-            var item = repository.Find(x => x.Id == message.Id);
+            var item = repository.First(x => x.Id == message.Id);
             item.Name = message.NewName;
         }
 

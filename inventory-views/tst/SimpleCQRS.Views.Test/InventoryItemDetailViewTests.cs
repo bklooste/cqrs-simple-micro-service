@@ -8,6 +8,7 @@ using System.Collections.Generic;
 
 namespace SimpleCQRS.API.Test
 {
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE1006:Naming Styles", Justification = "Long test names")]
 
     public class InventoryItemDetailViewTests
     {

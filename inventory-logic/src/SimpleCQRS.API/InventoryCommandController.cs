@@ -15,19 +15,19 @@ namespace SimpleCQRS.API
     public class InventoryCommandController : ControllerBase
     {
 
-        readonly ILogger<InventoryCommandController> logger;
+        readonly ILogger<InventoryCommandController> logger; 
         readonly IEventStoreConnection connection;
 
         public InventoryCommandController(ILogger<InventoryCommandController> logger, IEventStoreConnection connection)
         {
             this.logger = logger;
             this.connection = connection;
+            this.logger.LogDebug("InventoryCommandController invoked, Note core already does all request/ request time and failure logging");
         }
 
         [HttpPost]
         public async Task<ActionResult> Add(string name, Guid? id = null)
         {
-
             try
             {
                 if (id == null)
@@ -45,12 +45,9 @@ namespace SimpleCQRS.API
         [HttpPost]
         public async Task<ActionResult> ChangeName(Guid id, string name, int version)
         {
-            var inventoryItem = await connection.GetById<InventoryItemLogic>(id);
-            if (inventoryItem == null)
-                return NotFound();
-
             try
             {
+                var inventoryItem = await connection.GetById<InventoryItemLogic>(id);
                 inventoryItem.ChangeName(name);
                 await connection.Save(inventoryItem, version);
                 return NoContent();
@@ -59,17 +56,18 @@ namespace SimpleCQRS.API
             {
                 return BadRequest(ex.Message);
             }
+            catch (AggregateNotFoundException)
+            {
+                    return NotFound();
+            }
         }
 
         [HttpPost]
         public async Task<ActionResult> Deactivate(Guid id, int version)
         {
-            var inventoryItem = await connection.GetById<InventoryItemLogic>(id);
-            if (inventoryItem == null)
-                return NotFound();
-
             try
             {
+                var inventoryItem = await connection.GetById<InventoryItemLogic>(id);
                 inventoryItem.Deactivate();
                 await connection.Save(inventoryItem, version);
                 return NoContent();
@@ -78,17 +76,18 @@ namespace SimpleCQRS.API
             {
                 return BadRequest(ex.Message);
             }
+            catch (AggregateNotFoundException)
+            {
+                return NotFound();
+            }
         }
 
         [HttpPost]
         public async Task<ActionResult> CheckIn(Guid id, int number, int version)
         {
-            var inventoryItem = await connection.GetById<InventoryItemLogic>(id);
-            if (inventoryItem == null)
-                return NotFound();
-
             try
             {
+                var inventoryItem = await connection.GetById<InventoryItemLogic>(id);
                 inventoryItem.CheckIn(number);
                 await connection.Save(inventoryItem, version);
                 return NoContent();
@@ -97,17 +96,18 @@ namespace SimpleCQRS.API
             {
                 return BadRequest(ex.Message);
             }
+            catch (AggregateNotFoundException)
+            {
+                return NotFound();
+            }
         }
 
         [HttpPost]
         public async Task<ActionResult> Remove(Guid id, int number, int version)
         {
-            var inventoryItem = await connection.GetById<InventoryItemLogic>(id);
-            if (inventoryItem == null)
-                return NotFound();
-
             try
             {
+                var inventoryItem = await connection.GetById<InventoryItemLogic>(id);
                 inventoryItem.Remove(number);
                 await connection.Save(inventoryItem, version);
                 return NoContent();
@@ -115,6 +115,10 @@ namespace SimpleCQRS.API
             catch (InvalidOperationException ex)
             {
                 return BadRequest(ex.Message);
+            }
+            catch (AggregateNotFoundException)
+            {
+                return NotFound();
             }
         }
 

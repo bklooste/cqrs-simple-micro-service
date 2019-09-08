@@ -64,10 +64,7 @@ namespace SimpleCQRS.API
 
         internal void Apply(Event e)
         {
+            throw new Exception($"unknown event {e.GetType().Name} this should not happen in production - dont delete this method");
         }
-
-
-
     }
-
 }

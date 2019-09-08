@@ -7,16 +7,15 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.OpenApi.Models;
+using Microsoft.Extensions.Logging;
 
 using EventStore.ClientAPI;
-using Microsoft.Extensions.Logging;
+
 
 namespace SimpleCQRS.Views
 {
     public class Startup
     {
-        IEventStoreConnection connection;
-
         public IConfiguration Configuration { get; }
 
         public Startup(IConfiguration configuration)
@@ -29,13 +28,11 @@ namespace SimpleCQRS.Views
             services.AddControllers();
             services.AddSingleton<IEventStoreConnection>(EventStoreConnection.Create(Configuration.GetConnectionString("EventStoreConnection")));
 
-            this.connection = EventStoreConnection.Create(Configuration.GetConnectionString("EventStoreConnection"));
             var inventoryListView = new InventoryListView();
             var inventoryView = new InventoryItemDetailView();
-
             services.AddSingleton<IReadOnlyList<InventoryItemListDto>> (inventoryListView.Repository); 
             services.AddSingleton<IReadOnlyDictionary<Guid, InventoryItemDetailsDto>>(inventoryView.Repository);
-            services.AddSingleton(svc =>  new SubcribeAndProjector(inventoryListView, inventoryView, svc.GetRequiredService<ILogger<SubcribeAndProjector>>()) );
+            services.AddTransient<EventProjector>();
 
             services.AddSwaggerGen(c =>
             {
@@ -45,18 +42,10 @@ namespace SimpleCQRS.Views
 
 
 
-        public void Configure(IApplicationBuilder app, IWebHostEnvironment env, SubcribeAndProjector subcribeAndProjector, IHostApplicationLifetime applicationLifeTime)
+        public void Configure(IApplicationBuilder app, IWebHostEnvironment env, EventProjector projector, IHostApplicationLifetime applicationLifeTime)
         {
-            if (env.IsDevelopment())
-            {
-                app.UseDeveloperExceptionPage();
-            }
-
-            app.UseHttpsRedirection();
-
+            //app.UseHttpsRedirection();             //app.UseAuthorization();
             app.UseRouting();
-
-            app.UseAuthorization();
 
             app.UseEndpoints(endpoints =>
             {
@@ -64,15 +53,15 @@ namespace SimpleCQRS.Views
             });
 
             app.UseSwagger();
-
             app.UseSwaggerUI(c =>      //Swagger UI should be served from static container not service
             {
-                c.SwaggerEndpoint("/swagger/v1/swagger.json", "My API V1");
+                c.SwaggerEndpoint("/swagger/v1/swagger.json", $"Inventory View Service {env.EnvironmentName}");
             });
 
-            // if using a dB make the projection a 3rd generic host service.
+            // if using a DB make the projection / writer a 3rd generic host service.
+            var connection = EventStoreConnection.Create(Configuration.GetConnectionString("EventStoreConnection"));
             connection.ConnectAsync().Wait();
-            subcribeAndProjector.ConfigureAndStart(this.connection, applicationLifeTime);
+            new EventSubscriber(connection, projector.Project, applicationLifeTime, app.ApplicationServices.GetRequiredService<ILogger<EventSubscriber>>());
         }
     }
 }

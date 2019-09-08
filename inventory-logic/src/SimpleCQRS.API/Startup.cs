@@ -12,7 +12,6 @@ namespace SimpleCQRS.API
 {
     public class Startup
     {
-        IEventStoreConnection connection;
 
         public Startup(IConfiguration configuration)
         {
@@ -26,7 +25,7 @@ namespace SimpleCQRS.API
             services.AddControllers();
 
             var connectionString = Configuration.GetConnectionString("EventStoreConnection");
-            connection = EventStoreConnection.Create(connectionString);
+            var connection = EventStoreConnection.Create(connectionString);
             services.AddSingleton<IEventStoreConnection>(connection);
 
             services.AddSwaggerGen(c =>
@@ -35,7 +34,7 @@ namespace SimpleCQRS.API
             });
         }
 
-        public void Configure(IApplicationBuilder app, IWebHostEnvironment env, IHostApplicationLifetime appLifeTime)
+        public void Configure(IApplicationBuilder app, IWebHostEnvironment env, IHostApplicationLifetime appLifeTime, IEventStoreConnection connection)
         {
             if (env.IsDevelopment())
                 app.UseDeveloperExceptionPage();

@@ -1,5 +1,3 @@
-using System;
-using System.Collections.Generic;
 using System.Linq;
 
 using Xunit;
@@ -10,6 +8,7 @@ using SimpleCQRS.Views;
 
 namespace SimpleCQRS.API.Test
 {
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE1006:Naming Styles", Justification = "Long test names")]
 
     public class InventoryItemListViewTests
     {
