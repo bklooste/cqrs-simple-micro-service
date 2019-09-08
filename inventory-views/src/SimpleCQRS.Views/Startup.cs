@@ -16,6 +16,8 @@ namespace SimpleCQRS.Views
 {
     public class Startup
     {
+        EventSubscriber? subscriber;
+
         public IConfiguration Configuration { get; }
 
         public Startup(IConfiguration configuration)
@@ -32,7 +34,7 @@ namespace SimpleCQRS.Views
             var inventoryView = new InventoryItemDetailView();
             services.AddSingleton<IReadOnlyList<InventoryItemListDto>> (inventoryListView.Repository); 
             services.AddSingleton<IReadOnlyDictionary<Guid, InventoryItemDetailsDto>>(inventoryView.Repository);
-            services.AddTransient<EventProjector>();
+            services.AddTransient<EventProjector>(svc => new EventProjector(inventoryListView, inventoryView, svc.GetRequiredService<ILogger<EventProjector>>()));
 
             services.AddSwaggerGen(c =>
             {
@@ -61,7 +63,8 @@ namespace SimpleCQRS.Views
             // if using a DB make the projection / writer a 3rd generic host service.
             var connection = EventStoreConnection.Create(Configuration.GetConnectionString("EventStoreConnection"));
             connection.ConnectAsync().Wait();
-            new EventSubscriber(connection, projector.Project, applicationLifeTime, app.ApplicationServices.GetRequiredService<ILogger<EventSubscriber>>());
+            this.subscriber = new EventSubscriber(connection, projector.Project, applicationLifeTime, app.ApplicationServices.GetRequiredService<ILogger<EventSubscriber>>());
+            this.subscriber.Start();
         }
     }
 }

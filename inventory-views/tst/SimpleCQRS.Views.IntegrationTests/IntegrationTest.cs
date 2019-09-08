@@ -1,8 +1,6 @@
 using System;
-using System.Linq;
 using System.Net.Http;
 using System.Text;
-using System.Threading;
 using System.Threading.Tasks;
 
 using AutoFixture.Xunit2;
@@ -33,10 +31,11 @@ namespace SimpleCQRS.Views.IntegrationTest
         public async Task when_create_event_then_its_in_list_view(Guid id, string itemName)
         {
             string json = $"{{\"Id\": \"{id}\",\"Name\": \"{itemName}\", \"Version\": 0}}";
+            var streamName = $"inventory-InventoryItemLogic{id}";
             var jsonBytes = Encoding.UTF8.GetBytes(json);
             var eventData = new EventData(Guid.NewGuid(), "SimpleCQRS.InventoryItemCreated", true, jsonBytes, null);
-            await eventStoreConnection.AppendToStreamAsync($"inventory-InventoryItemLogic{id}", ExpectedVersion.NoStream, eventData);
-            await Task.Delay(sleepMillisecondsDelay);
+            await eventStoreConnection.AppendToStreamAsync(streamName, ExpectedVersion.NoStream, eventData);
+            await Task.Delay(sleepMillisecondsDelay*2);
 
             var response = await client.GetStringAsync("items/");
 

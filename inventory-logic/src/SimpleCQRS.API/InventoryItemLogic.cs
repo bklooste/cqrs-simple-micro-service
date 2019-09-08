@@ -1,5 +1,6 @@
 ﻿
 using System;
+using System.Diagnostics;
 
 namespace SimpleCQRS.API
 {
@@ -64,7 +65,7 @@ namespace SimpleCQRS.API
 
         internal void Apply(Event e)
         {
-            throw new Exception($"unknown event {e.GetType().Name} this should not happen in production - dont delete this method");
+            Debug.WriteLine($"nothing to play for event {e.GetType().Name} - dont delete this method");
         }
     }
 }
