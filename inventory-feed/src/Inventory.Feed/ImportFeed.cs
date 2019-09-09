@@ -22,13 +22,14 @@ namespace Inventory.Feed
         readonly FixerHttpExchangeProvider exchangeRateProvider;
         readonly IEventStoreConnection connection;
         readonly IHostApplicationLifetime hostLifeTime;
-        Task executingTask;
+        Task? executingTask;
 
         public ImportFeed(ILogger<ImportFeed> logger, IConfiguration configuration, IHostApplicationLifetime hostLifeTime)
         {
             this.logger = logger;
             this.exchangeRateProvider = new FixerHttpExchangeProvider(configuration["Fixer:Url"]);
             this.connection = EventStoreConnection.Create(configuration.GetConnectionString("EventStoreConnection"), "exchangefeed");
+            this.hostLifeTime = hostLifeTime;
         }
 
         async Task ExecuteAsync(CancellationToken stoppingToken)

@@ -7,7 +7,8 @@
     <ApplicationInsightsAnnotationResourceId>/subscriptions/a50ec426-f691-4e60-b2c5-31158d1526c8/resourcegroups/Default-ApplicationInsights-EastUS/providers/microsoft.insights/components/Inventory.Feed</ApplicationInsightsAnnotationResourceId>
     <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
     <DockerfileContext>..\..</DockerfileContext>
-    <!--<DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>-->
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
   </PropertyGroup>
 
   <ItemGroup>
