@@ -17,7 +17,7 @@ namespace SimpleCQRS.API
 
         readonly ILogger<InventoryCommandController> logger; 
         readonly IEventStoreConnection connection;
-        readonly ExternalLogic logic = new ExternalLogic(); 
+        readonly ExternalLogic logic; 
 
         public InventoryCommandController(ILogger<InventoryCommandController> logger, IEventStoreConnection connection)
         {
