@@ -17,11 +17,13 @@ namespace SimpleCQRS.API
 
         readonly ILogger<InventoryCommandController> logger; 
         readonly IEventStoreConnection connection;
+        readonly ExternalLogic logic = new ExternalLogic(); 
 
         public InventoryCommandController(ILogger<InventoryCommandController> logger, IEventStoreConnection connection)
         {
             this.logger = logger;
             this.connection = connection;
+            this.logic = new ExternalLogic(connection); 
             this.logger.LogDebug("InventoryCommandController invoked, Note core already does all request/ request time and failure logging");
         }
 
@@ -85,10 +87,12 @@ namespace SimpleCQRS.API
         [HttpPost]
         public async Task<ActionResult> CheckIn(Guid id, int number, int version)
         {
+            //Test its there in integration ! 
+            var price = this.logic.GetPrice(); 
             try
             {
                 var inventoryItem = await connection.GetById<InventoryItemLogic>(id);
-                inventoryItem.CheckIn(number);
+                inventoryItem.CheckIn(number, price);
                 await connection.Save(inventoryItem, version);
                 return NoContent();
             }
