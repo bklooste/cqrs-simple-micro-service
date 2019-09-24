@@ -32,7 +32,7 @@ namespace SimpleCQRS.API.Test
             var itemBL = new InventoryItemLogic(id, name);
             itemBL.MarkChangesAsCommitted();
 
-            itemBL.CheckIn(count);
+            itemBL.CheckIn(count, 0.1f);
 
             var events = itemBL.GetUncommittedChanges();
             var checkedInEvent = events.First() as ItemsCheckedInToInventory;

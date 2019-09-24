@@ -32,10 +32,10 @@ namespace SimpleCQRS.API
             ApplyChange(new ItemsRemovedFromInventory(id, count));
         }
 
-        public void CheckIn(int count)
+        public void CheckIn(int count, float price)
         {
             if (count <= 0)
-                throw new InvalidOperationException("must have a count greater than 0 to add to inventory");
+                throw new InvalidOperationException($"must have a count greater than 0 to add to inventory pirce {price}");
             ApplyChange(new ItemsCheckedInToInventory(id, count));
         }
 
