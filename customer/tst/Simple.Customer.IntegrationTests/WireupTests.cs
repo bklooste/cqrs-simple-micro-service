@@ -35,13 +35,15 @@ namespace Simple.Customers.IntegrationTest
         // this test covers
         // json convert called the correct message is written to the right place 
         [Theory, AutoData]
-         public async Task when_create_event_then_message_ends_up_in_in_store(Guid id, string itemName)
+         public async Task when_create_customer_then_ends_up_in_in_store(Guid id, string itemName)
         {
             var result = await client.PostAsync($"http://localhost:53104/InventoryCommand/Add?name={itemName}&id={id}", null);
             
             Assert.True(result.IsSuccessStatusCode);
             await Task.Delay(sleepMillisecondsDelay);
             var streamName = $"inventory-InventoryItemLogic{id}";
+
+            // query postgres 
             var streamResult = await eventStoreConnection.ReadStreamEventsForwardAsync(streamName, 0, 1000, false);
             var evnt = streamResult.Events.First();
 
