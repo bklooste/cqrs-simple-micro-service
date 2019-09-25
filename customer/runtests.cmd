@@ -2,12 +2,20 @@ SET EVENTSTORE_HOST_TCP_PORT=1114
 SET EVENTSTORE_CONNECTION=ConnectTo=tcp://admin:changeit@host.docker.internal:%EVENTSTORE_HOST_TCP_PORT%;HeartBeatTimeout=500
 SET InventoryLogicServicePort=53104
 
-REM docker run -d --name eventstore-logic-itest -p 2114:2113 -p %EVENTSTORE_HOST_TCP_PORT%:1113 -e EVENTSTORE_RUN_PROJECTIONS=ALL -e EVENTSTORE_START_STANDARD_PROJECTIONS=TRUE eventstore/eventstore
-REM docker start eventstore-logic-itest
-docker run --name cust-postgres -e POSTGRES_PASSWORD=mysecretpassword -d postgres
+
+REM admin postgress on port 8045
+REM docker run -p 8045:80   -e "PGADMIN_DEFAULT_EMAIL=user@domain.com"   -e "PGADMIN_DEFAULT_PASSWORD=mysecretpassword"   -d dpage/pgadmin4
+REM docker run --name cust-postgres -e POSTGRES_PASSWORD=mysecretpassword -p 5432:5432 -it clkao/postgres-plv8
+REM docker start  cust-postgres
+REM  docker exec cust-postgres psql -U postgres -c 'CREATE EXTENSION IF NOT EXISTS plv8;'
+REM docker exec cust-postgres psql -U postgres -c "SELECT * FROM pg_extension"
+
+
+docker run --name cust-postgres -e POSTGRES_PASSWORD=mysecretpassword -d clkao/postgres-plv8 psql -U postgres -c "SELECT plv8_version();" -p 5432:5432
+REM docker exec cust-postgres psql -U postgres -c "SELECT plv8_version();"
 docker start cust-postgres
-docker run -d --name simplecqrs-logic-itest -e "DOTNET_USE_POLLING_FILE_WATCHER=1" -e ConnectionStrings:EventStoreConnection=%EVENTSTORE_CONNECTION%  -p %InventoryLogicServicePort%:80 simplecqrsapi:latest
-docker start simplecqrs-logic-itest
+docker run -d --name customer-itest -e "DOTNET_USE_POLLING_FILE_WATCHER=1" -e ConnectionStrings:EventStoreConnection=%EVENTSTORE_CONNECTION%  -p %InventoryLogicServicePort%:80 customer:latest
+docker start customer-itest
 timeout 15
 dotnet test
 

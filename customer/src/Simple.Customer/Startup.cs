@@ -1,19 +1,19 @@
+using System;
 
-
-using Marten;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.OpenApi.Models;
-using System;
+
+using Marten;
+
 
 namespace Simple.Customers
 {
     public class Startup
     {
-
         public Startup(IConfiguration configuration)
         {
             Configuration = configuration;
@@ -26,7 +26,22 @@ namespace Simple.Customers
             services.AddControllers();
 
             var connectionString = Configuration.GetConnectionString("PostgresConnection");
-            var store = DocumentStore.For(connectionString);
+
+
+
+            var store = DocumentStore.For(storeOptions =>
+           {
+               storeOptions.Connection(connectionString);
+               storeOptions.AutoCreateSchemaObjects = AutoCreate.CreateOrUpdate;
+               storeOptions.CreateDatabasesForTenants(c =>                  
+                       c.ForTenant()
+                           .CheckAgainstPgDatabase()
+                           .WithOwner("postgres")
+                           .WithEncoding("UTF-8")
+                           .ConnectionLimit(-1)                  
+                   );
+           });
+
             services.AddSingleton<IDocumentStore>(store);
 
             services.AddSwaggerGen(c =>
@@ -43,7 +58,7 @@ namespace Simple.Customers
             app.UseRouting();
 
             app.UseSwagger();
-        
+
             app.UseSwaggerUI(c =>      //Swagger UI should be served from static container not service
             {
                 c.SwaggerEndpoint("/swagger/v1/swagger.json", "My API V1");

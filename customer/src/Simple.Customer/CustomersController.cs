@@ -7,15 +7,17 @@ using Microsoft.Extensions.Logging;
 using Microsoft.AspNetCore.Http;
 
 using Marten;
+using System.ComponentModel.DataAnnotations;
 
 namespace Simple.Customers
 {
+    [Consumes("application/json")]
+    [Produces("application/json")]
     [ApiController]
     [Route("api/[controller]")]
     public class CustomersController : ControllerBase
     {
-
-        readonly ILogger<CustomersController> logger; 
+        readonly ILogger<CustomersController> logger;
         readonly IDocumentStore store;
 
         public CustomersController(ILogger<CustomersController> logger, IDocumentStore store)
@@ -26,9 +28,9 @@ namespace Simple.Customers
         }
 
         [HttpPost]
-        [ProducesResponseType(StatusCodes.Status201Created)]
+        [ProducesResponseType(typeof(Guid), 200)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        public async Task<ActionResult<Guid>> Create(string firstName, string lastName)
+        public async Task<ActionResult<Guid>> Create([FromQuery] string firstName, [FromQuery] [Required] string lastName)
         {
             if (string.IsNullOrEmpty(firstName) || string.IsNullOrEmpty(lastName))
                 return BadRequest("customer name was not received");
@@ -39,31 +41,35 @@ namespace Simple.Customers
 
             await session.SaveChangesAsync();
 
-            return CreatedAtAction(nameof(Get), "Customers", new { id = customer.Id });
+            return Ok(customer.Id);
         }
 
-        [HttpPut]
+        [HttpPut("{id}/")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        public async Task<ActionResult<Guid>> Update(string firstName, string lastName)
+        public async Task<ActionResult> Update([FromRoute] Guid id, string firstName, string lastName)
         {
             if (string.IsNullOrEmpty(firstName) || string.IsNullOrEmpty(lastName))
                 return BadRequest("customer name was not received");
 
             using var session = store.LightweightSession();
-            var customer = new Customer() { FirstName = firstName, LastName = lastName };
+            var customer = await session.LoadAsync<Customer>(id);
+            if (customer == null)
+                return BadRequest("no such customer");
+            customer.FirstName = firstName;
+            customer.LastName = lastName;
             session.Store(customer);
 
             await session.SaveChangesAsync();
-            return Ok( );
+            return Ok();
         }
 
         // GET: api/customers/5
-        [HttpGet("{id}")]
+        [HttpGet("{id}", Name = nameof(Get))]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(Customer), 200)]
-        public async Task<ActionResult<Customer>> Get(Guid id)
+        public async Task<ActionResult<Customer>> Get([FromRoute] Guid id)
         {
             if (id == Guid.Empty)
                 return BadRequest("id was not received");
@@ -72,22 +78,22 @@ namespace Simple.Customers
             return await session.LoadAsync<Customer>(id);
         }
 
-        [HttpGet]
+        [HttpGet("name={lastNamePrefix}")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(Customer), 200)]
         public async Task<ActionResult<Guid>> GetByName(string lastNamePrefix)
         {
-            if (string.IsNullOrEmpty(lastNamePrefix) || lastNamePrefix.Length < 4 )
+            if (string.IsNullOrEmpty(lastNamePrefix) || lastNamePrefix.Length < 4)
                 return BadRequest("name of at least 4 characters was not received");
 
             using var session = store.LightweightSession();
-            var result = await session.QueryAsync(new  FindCustomerByNameQuery{ LastNamePrefix = lastNamePrefix });
+            var result = await session.QueryAsync(new FindCustomerByNameQuery { LastNamePrefix = lastNamePrefix });
 
             return Ok(result);
         }
 
-        [HttpGet]
+        [HttpGet("IsAvailable")]
         public ActionResult IsAvailable()
         {
             return Ok(true);
