@@ -8,6 +8,7 @@ using Marten.Linq;
 namespace Simple.Customers
 {
     //TODO pre compiled queries rock note this returns json for straight out but for more complex logic you can return IEnumerable<Customer>
+    // It is NOT needed for small service at all
     public class FindCustomerJsonByNameQuery : ICompiledQuery<Customer,string>
     {
         public string LastNamePrefix { get; set; } = string.Empty;
