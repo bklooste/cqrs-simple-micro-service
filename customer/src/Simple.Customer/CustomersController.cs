@@ -1,13 +1,14 @@
 ﻿using System;
 using System.Linq;
 using System.Threading.Tasks;
+using System.ComponentModel.DataAnnotations;
 
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Microsoft.AspNetCore.Http;
 
 using Marten;
-using System.ComponentModel.DataAnnotations;
+
 
 namespace Simple.Customers
 {
@@ -68,29 +69,29 @@ namespace Simple.Customers
         [HttpGet("{id}", Name = nameof(Get))]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(typeof(Customer), 200)]
-        public async Task<ActionResult<Customer>> Get([FromRoute] Guid id)
+        [ProducesResponseType(typeof(CustomerView), 200)]
+        public async Task<ActionResult<string>> Get([FromRoute] Guid id)
         {
             if (id == Guid.Empty)
                 return BadRequest("id was not received");
 
             using var session = store.LightweightSession();
-            return await session.LoadAsync<Customer>(id);
+            return await session.Json.FindByIdAsync<Customer>(id);
         }
 
         [HttpGet("name={lastNamePrefix}")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(typeof(Customer), 200)]
-        public async Task<ActionResult<Guid>> GetByName(string lastNamePrefix)
+        [ProducesResponseType(typeof(CustomerView[]), 200)]
+        public async Task<ActionResult<string>> GetByName(string lastNamePrefix)
         {
             if (string.IsNullOrEmpty(lastNamePrefix) || lastNamePrefix.Length < 4)
                 return BadRequest("name of at least 4 characters was not received");
 
             using var session = store.LightweightSession();
-            var result = await session.QueryAsync(new FindCustomerByNameQuery { LastNamePrefix = lastNamePrefix });
+            var json = await session.QueryAsync(new FindCustomerJsonByNameQuery { LastNamePrefix = lastNamePrefix });
 
-            return Ok(result);
+            return Ok(json);
         }
 
         [HttpGet("IsAvailable")]

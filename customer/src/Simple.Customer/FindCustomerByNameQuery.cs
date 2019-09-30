@@ -1,19 +1,23 @@
-using Marten.Linq;
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 
+using Marten;
+using Marten.Linq;
+
 namespace Simple.Customers
 {
-    //Linq is super expensive this helps
-    public class FindCustomerByNameQuery : ICompiledListQuery<Customer>
+    //TODO pre compiled queries rock note this returns json for straight out but for more complex logic you can return IEnumerable<Customer>
+    public class FindCustomerJsonByNameQuery : ICompiledQuery<Customer,string>
     {
         public string LastNamePrefix { get; set; } = string.Empty;
 
-        public Expression<Func<IQueryable<Customer>, IEnumerable<Customer>>> QueryIs()
+        public Expression<Func<IQueryable<Customer>, string>> QueryIs()
         {
-            return q => q.Where(p => p.LastName.StartsWith(LastNamePrefix));
+            return q => q
+                .Where(p => p.LastName.StartsWith(LastNamePrefix))
+                .OrderBy( p=> p.LastName)
+                .ToJsonArray();
         }
-    }
+    }  
 }
