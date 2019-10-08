@@ -13,6 +13,4 @@ namespace SimpleCQRS.Views
             Name = name;
         }
     }
-
-
 }

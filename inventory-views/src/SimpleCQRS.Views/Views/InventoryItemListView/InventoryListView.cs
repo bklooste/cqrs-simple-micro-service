@@ -26,6 +26,5 @@ namespace SimpleCQRS.Views
         {
             repository.RemoveAll(x => x.Id == message.Id);
         }
-
     }
 }

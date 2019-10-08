@@ -50,7 +50,6 @@ namespace SimpleCQRS.Views
         {
             if (!repository.TryGetValue(id, out var d))
                 throw new InvalidOperationException("did not find the original inventory this shouldnt happen");
-
             return d;
         }
     }
