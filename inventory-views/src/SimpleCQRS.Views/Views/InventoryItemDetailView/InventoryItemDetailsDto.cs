@@ -17,6 +17,4 @@ namespace SimpleCQRS.Views
             Version = version;
         }
     }
-
-
 }

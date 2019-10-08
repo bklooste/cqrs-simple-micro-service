@@ -2,15 +2,12 @@ using System;
 
 namespace SimpleCQRS
 {
-
-
     public class Event
     {
         public int Version;
     }
 
-    // D not mutate these
-
+    // Do not mutate these
     public class InventoryItemCreated : Event
     {
         public readonly Guid Id;
@@ -67,7 +64,5 @@ namespace SimpleCQRS
             Count = count;
         }
     }
-
-
 }
 
