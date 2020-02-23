@@ -62,7 +62,8 @@ namespace SimpleCQRS.API
             { 
                 new NameValueEntry("id" , Guid.NewGuid().ToString()),
                 new NameValueEntry("type" , evnt.GetType().FullName),
-                new NameValueEntry("msg" , jsonBytes),
+                new NameValueEntry("msg" , jsonBytes), 
+                new NameValueEntry("partition" , string.Empty), 
                 new NameValueEntry("metadata" , string.Empty)
             };
         }
