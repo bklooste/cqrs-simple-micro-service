@@ -1,0 +1,22 @@
+version: '3.4'
+
+services:
+  simplecqrs-redis:
+    image: ${DOCKER_REGISTRY-}simplecqrsapi-redis
+    container_name: simplecqrs-redis-itest
+    environment:
+      - LOG_LEVEL=DEBUG
+      - ConnectionStrings:RedisConnection=localhost:6479,allowAdmin=false     
+    ports:
+      - 54105:80     
+      
+  redis:
+    image: redis:alpine
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      - 6479:6379   
+    volumes:
+      - redis-data:/data
+
+volumes:
+  redis-data:

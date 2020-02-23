@@ -25,12 +25,9 @@ namespace SimpleCQRS.API
         {
             services.AddControllers();
 
-            var connectionString = Configuration.GetConnectionString("EventStoreConnection");
+            var connectionString = Configuration.GetConnectionString("RedisConnection");
             var redis = ConnectionMultiplexer.Connect(connectionString);
             services.AddTransient<IDatabase>(svc => redis.GetDatabase()) ;
-
-            var db = redis.GetDatabase();
-            var messageId = db.StreamAdd("event_stream", "foo_name", "bar_value");
 
             services.AddSwaggerGen(c =>
             {

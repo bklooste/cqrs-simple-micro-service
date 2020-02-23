@@ -1,15 +1,17 @@
 ﻿using System;
-
+using System.Collections.Generic;
 using Microsoft.Extensions.Configuration;
 
 
-using System.Collections.Generic;
+
+using StackExchange.Redis;
 
 namespace SimpleCQRS.API.IntegrationTest
 {
     public class IntegrationTestFixture : IDisposable
     {
         readonly IConfiguration config;
+        private ConnectionMultiplexer redis;
 
         public IDatabase StoreConnection { get; }
         public int Port=> int.Parse(config["InventoryLogicServicePort"]);
@@ -19,8 +21,8 @@ namespace SimpleCQRS.API.IntegrationTest
         {
             var configDefaults = new Dictionary<string, string>
             {
-                {"ConnectionStrings:EventStoreConnection", "ConnectTo=tcp://admin:changeit@127.0.0.1:1114"},
-                {"InventoryLogicServicePort", "53104"}
+                {"ConnectionStrings:RedisConnection", "localhost:6479,allowAdmin=false"},
+                {"InventoryLogicServicePort", "54105"}
             };
 
             this.config = new ConfigurationBuilder()
@@ -28,15 +30,16 @@ namespace SimpleCQRS.API.IntegrationTest
                 .AddEnvironmentVariables()
                 .Build();
 
-            var connection = config["ConnectionStrings:EventStoreConnection"];
+            
+            var connectionString = config["ConnectionStrings:RedisConnection"];
+            this.redis = ConnectionMultiplexer.Connect(connectionString);
 
-            this.StoreConnection = EventStoreConnection.Create(connection, "integrationTests");
-            this.StoreConnection.ConnectAsync().Wait();
+            this.StoreConnection = redis.GetDatabase();
         }
 
         public void Dispose()
         {
-            StoreConnection.Dispose();
+            redis.Dispose();
         }
     }
 }
