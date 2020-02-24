@@ -21,7 +21,7 @@ namespace SimpleCQRS.API.IntegrationTest
         {
             var configDefaults = new Dictionary<string, string>
             {
-                {"ConnectionStrings:RedisConnection", "localhost:6479,allowAdmin=false"},
+                {"ConnectionStrings:RedisConnection", "127.0.0.1:6479,allowAdmin=false"},
                 {"InventoryLogicServicePort", "54105"}
             };
 

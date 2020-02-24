@@ -5,9 +5,9 @@ VisualStudioVersion = 16.0.29123.89
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SimpleCQRS.API.Test", "tst\SimpleCQRS.API.Test\SimpleCQRS.API.Test.csproj", "{683ADDD8-FD35-430C-BD06-62C73D292D82}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SimpleCQRS.API.IntegrationTest", "tst\SimpleCQRS.API.IntegrationTests\SimpleCQRS.API.IntegrationTest.csproj", "{E3264877-9BCB-493A-ADC3-7353EF6628D0}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SimpleCQRS.Redis.API.IntegrationTest", "tst\SimpleCQRS.API.IntegrationTests\SimpleCQRS.Redis.API.IntegrationTest.csproj", "{E3264877-9BCB-493A-ADC3-7353EF6628D0}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SimpleCQRS.API", "src\SimpleCQRS.API\SimpleCQRS.API.csproj", "{896CDF05-A932-4D2F-AB58-2B6031498E01}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SimpleCQRS.Redis.API", "src\SimpleCQRS.API\SimpleCQRS.Redis.API.csproj", "{896CDF05-A932-4D2F-AB58-2B6031498E01}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

@@ -2,11 +2,11 @@ version: '3.4'
 
 services:
   simplecqrs-redis:
-    image: ${DOCKER_REGISTRY-}simplecqrsapi-redis
+    image: ${DOCKER_REGISTRY-}simplecqrsredisapi
     container_name: simplecqrs-redis-itest
     environment:
       - LOG_LEVEL=DEBUG
-      - ConnectionStrings:RedisConnection=localhost:6479,allowAdmin=false     
+      - ConnectionStrings:RedisConnection=redis:6379,allowAdmin=false     
     ports:
       - 54105:80     
       

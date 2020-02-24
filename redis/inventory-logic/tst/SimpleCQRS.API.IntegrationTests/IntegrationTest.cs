@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 using AutoFixture.Xunit2;
 
 using Newtonsoft.Json;
+using StackExchange.Redis;
 using Xunit;
 
 namespace SimpleCQRS.API.IntegrationTest
@@ -19,12 +20,12 @@ namespace SimpleCQRS.API.IntegrationTest
     public class IntegrationTest : IClassFixture<IntegrationTestFixture>
     {
         readonly HttpClient client = new System.Net.Http.HttpClient();
-        readonly IDatabase eventStoreConnection;
+        readonly IDatabase redisConnection;
         readonly TimeSpan sleepMillisecondsDelay = TimeSpan.FromMilliseconds(1000);
 
         public IntegrationTest(IntegrationTestFixture fixture)
         {
-            eventStoreConnection = fixture.StoreConnection;
+            redisConnection = fixture.StoreConnection;
             client.BaseAddress = new Uri($"http://localhost:{fixture.Port}/InventoryCommand/");
 
             this.client.BlockGetTillAvailable("IsAvailable");
@@ -39,17 +40,18 @@ namespace SimpleCQRS.API.IntegrationTest
         [Theory, AutoData]
         public async Task when_create_event_then_its_in_store_in_correct_format(Guid id, string itemName)
         {
-            var result = await client.PostAsync($"http://localhost:53104/InventoryCommand/Add?name={itemName}&id={id}", null);
+            var result = await client.PostAsync($"http://localhost:54105/InventoryCommand/Add?name={itemName}&id={id}", null);
             
             Assert.True(result.IsSuccessStatusCode);
             await Task.Delay(sleepMillisecondsDelay);
             var streamName = $"inventory-InventoryItemLogic{id}";
-            var streamResult = await eventStoreConnection.ReadStreamEventsForwardAsync(streamName, 0, 1000, true);
-            var evnt = streamResult.Events
-                .Select(x => Encoding.UTF8.GetString(x.Event.Data))
+            var streamResult = await redisConnection.StreamReadAsync(streamName, "0-0");  
+            var evnt = streamResult
+                .Select(x => x.Values)
+                .Select(x => Encoding.UTF8.GetString(x.First( field => field.Name == "msg").Value))
                 .Select(json => (dynamic) JsonConvert.DeserializeObject<System.Dynamic.ExpandoObject>(json))
                 .First();
-            Assert.Single(streamResult.Events);
+            Assert.Single(streamResult);
 
             Assert.Equal(id.ToString(), evnt.Id);
         }
@@ -57,14 +59,17 @@ namespace SimpleCQRS.API.IntegrationTest
         [Theory, AutoData]
         public async Task when_create_event_then_its_in_category_stream_for_read_model(Guid id, string itemName)
         {
-            var result = await client.PostAsync($"http://localhost:53104/InventoryCommand/Add?name={itemName}&id={id}", null);
+            var result = await client.PostAsync($"http://localhost:54105/InventoryCommand/Add?name={itemName}&id={id}", null);
 
             Assert.True(result.IsSuccessStatusCode);
             await Task.Delay(sleepMillisecondsDelay);
             var streamName = $"$ce-inventory";
-            var streamResult = await eventStoreConnection.ReadStreamEventsBackwardAsync(streamName, StreamPosition.End , 20, true);
-            var evntJson = streamResult.Events
-                          .Select(x => Encoding.UTF8.GetString(x.Event.Data)).ToList();
+            var streamResult = await redisConnection.StreamRangeAsync(streamName, "0-0" , "+",  20,  Order.Descending);
+            var evntJson = streamResult
+                .Select(x => x.Values)
+                .Select(x => Encoding.UTF8.GetString(x.First(field => field.Name == "msg").Value))
+                .Select(json => (dynamic)JsonConvert.DeserializeObject<System.Dynamic.ExpandoObject>(json))
+                .ToList();
 
             Assert.Contains(evntJson, json => json.Contains(id.ToString()));
         }

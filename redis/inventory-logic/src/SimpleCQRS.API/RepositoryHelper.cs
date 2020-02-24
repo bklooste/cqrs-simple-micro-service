@@ -32,7 +32,6 @@ namespace SimpleCQRS.API
                     await connection.StreamAddAsync(CategoryStreamName, CategoryStreamIndexEntry(streamName, (string) result));
                 }))
                 .ToArray();
-            //// need a category stream.. 
 
             await Task.WhenAll(tasks);
 

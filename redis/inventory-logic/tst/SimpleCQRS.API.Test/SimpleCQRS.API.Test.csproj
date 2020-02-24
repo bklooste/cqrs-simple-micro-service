@@ -17,7 +17,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\SimpleCQRS.API\SimpleCQRS.API.csproj" />
+    <ProjectReference Include="..\..\src\SimpleCQRS.API\SimpleCQRS.Redis.API.csproj" />
   </ItemGroup>
 
 </Project>
