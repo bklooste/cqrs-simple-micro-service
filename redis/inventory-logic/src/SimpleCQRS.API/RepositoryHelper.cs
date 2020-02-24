@@ -11,6 +11,7 @@ namespace SimpleCQRS.API
 {
     public static class RepositoryHelper
     {
+        const string CategoryStreamName = "$ce-inventory";
         const string CategoryStreamPrefix = "inventory-";
 
         static string GetStreamName(string name, Guid id)
@@ -22,21 +23,13 @@ namespace SimpleCQRS.API
         {
             var streamName = GetStreamName(aggregate.GetType().Name, aggregate.Id);
 
-            //var redisEvent = aggregate
-            //    .GetUncommittedChanges()
-            //    .Select(ToRedisEvent)
-            //    .First();
-
-            //await connection.StreamAddAsync(streamName, redisEvent)
-            //    .ContinueWith(async resultTask => await connection.StreamAddAsync(CategoryStreamPrefix, CategoryStream(streamName, resultTask.Result)));
-
             var tasks = aggregate
                 .GetUncommittedChanges()
                 .Select(ToRedisEvent)
                 .Select(redisEvent => Task.Run( async ()  =>
                 {
                     var result = await connection.StreamAddAsync(streamName, redisEvent);
-                    await connection.StreamAddAsync(CategoryStreamPrefix, CategoryStream(streamName, (string) result));
+                    await connection.StreamAddAsync(CategoryStreamName, CategoryStreamIndexEntry(streamName, (string) result));
                 }))
                 .ToArray();
             //// need a category stream.. 
@@ -51,8 +44,8 @@ namespace SimpleCQRS.API
             var streamName = GetStreamName(typeof(T).Name, id);
 
             var events = await connection.StreamReadAsync(streamName, "0-0", 4000);
-            //if (events.Status == SliceReadStatus.StreamNotFound)
-            //    throw new AggregateNotFoundException($"id {id} does not exist");
+            if (events.Any() == false)
+                throw new AggregateNotFoundException($"id {id} does not exist");
 
             var obj = new T();//lots of ways to do this
             obj.LoadsFromHistory(events.Select(ToEvent));
@@ -80,7 +73,7 @@ namespace SimpleCQRS.API
             };
         }
 
-        public static NameValueEntry[] CategoryStream(string streamName, string entryKey)
+        public static NameValueEntry[] CategoryStreamIndexEntry(string streamName, string entryKey)
         {
             return new NameValueEntry[]
             {
