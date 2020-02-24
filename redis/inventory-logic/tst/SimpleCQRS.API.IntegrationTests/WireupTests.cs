@@ -61,7 +61,7 @@ namespace SimpleCQRS.API.IntegrationTest
             Assert.Equal(id.ToString(), jsonObject.Id);
         }
 
-        //TODO
+        //Finish
         //[Theory, AutoData]
         //public async Task when_create_rename_event_then_message_ends_up_in_in_store(Guid id, string itemName)
         //{
@@ -74,18 +74,16 @@ namespace SimpleCQRS.API.IntegrationTest
         //    var evnts = streamResult
         //        .Select(x => x.Values)
         //        .Select(x => Encoding.UTF8.GetString(x.First(field => field.Name == "msg").Value))
-        //        .Select(json => (dynamic)JsonConvert.DeserializeObject<System.Dynamic.ExpandoObject>(json))
-        //        .ToList();
+        //        .Select(json => (dynamic)JsonConvert.DeserializeObject<System.Dynamic.ExpandoObject>(json));
 
-
+        //    var types = streamResult
+        //   .Select(x => x.Values)
+        //   .Select(x => x.First(field => field.Name == "type").Value);
 
         //    //Assert.True(evnt.Event.IsJson);
-        //    Assert.Contains("SimpleCQRS.InventoryItemRenamed", evnts.Where( x=> x...Event.EventType);
-        //    //var jsonString = Encoding.UTF8.GetString(evnt.Event.Data);
+        //    Assert.Contains("SimpleCQRS.InventoryItemRenamed", types);
+        //    Assert.Contains(evnts, x => x.Id == id.ToString());
 
-        //    //dynamic jsonObject = JsonConvert.DeserializeObject<System.Dynamic.ExpandoObject>(jsonString);
-
-        //    //Assert.Equal(id.ToString(), jsonObject.Id);
         //}
     }
 }

@@ -2,7 +2,6 @@ using System;
 using System.Linq;
 using System.Net.Http;
 using System.Text;
-using System.Threading;
 using System.Threading.Tasks;
 
 using AutoFixture.Xunit2;
@@ -65,13 +64,12 @@ namespace SimpleCQRS.API.IntegrationTest
             await Task.Delay(sleepMillisecondsDelay);
             var streamName = $"$ce-inventory";
             var streamResult = await redisConnection.StreamRangeAsync(streamName, "0-0" , "+",  20,  Order.Descending);
-            var evntJson = streamResult
+            var streamNames = streamResult
                 .Select(x => x.Values)
-                .Select(x => Encoding.UTF8.GetString(x.First(field => field.Name == "msg").Value))
-                .Select(json => (dynamic)JsonConvert.DeserializeObject<System.Dynamic.ExpandoObject>(json))
+                .Select(x => Encoding.UTF8.GetString(x.First(field => field.Name == "stream").Value))
                 .ToList();
 
-            Assert.Contains(evntJson, json => json.Contains(id.ToString()));
+            Assert.Contains(streamNames, json => json.Contains(id.ToString()));
         }
 
     }
