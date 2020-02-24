@@ -13,6 +13,7 @@ namespace SimpleCQRS.API
 {
     public class Startup
     {
+        private ConnectionMultiplexer redisMultiplexer;
 
         public Startup(IConfiguration configuration)
         {
@@ -26,8 +27,8 @@ namespace SimpleCQRS.API
             services.AddControllers();
 
             var connectionString = Configuration.GetConnectionString("RedisConnection");
-            var redis = ConnectionMultiplexer.Connect(connectionString);
-            services.AddTransient<IDatabase>(svc => redis.GetDatabase()) ;
+            this.redisMultiplexer = ConnectionMultiplexer.Connect(connectionString);
+            services.AddTransient<IDatabase>(svc => redisMultiplexer.GetDatabase()) ;
 
             services.AddSwaggerGen(c =>
             {
@@ -35,12 +36,12 @@ namespace SimpleCQRS.API
             });
         }
 
-        public void Configure(IApplicationBuilder app, IWebHostEnvironment env, IHostApplicationLifetime appLifeTime, IConnectionMultiplexer connection)
+        public void Configure(IApplicationBuilder app, IWebHostEnvironment env, IHostApplicationLifetime appLifeTime)
         {
             if (env.IsDevelopment())
                 app.UseDeveloperExceptionPage();
 
-            connection.ConnectionFailed += (sender, args) => appLifeTime.StopApplication();
+            redisMultiplexer.ConnectionFailed += (sender, args) => appLifeTime.StopApplication();
 
             app.UseRouting();
 

@@ -22,16 +22,28 @@ namespace SimpleCQRS.API
         {
             var streamName = GetStreamName(aggregate.GetType().Name, aggregate.Id);
 
+            //var redisEvent = aggregate
+            //    .GetUncommittedChanges()
+            //    .Select(ToRedisEvent)
+            //    .First();
+
+            //await connection.StreamAddAsync(streamName, redisEvent)
+            //    .ContinueWith(async resultTask => await connection.StreamAddAsync(CategoryStreamPrefix, CategoryStream(streamName, resultTask.Result)));
+
             var tasks = aggregate
                 .GetUncommittedChanges()
                 .Select(ToRedisEvent)
-                .Select(redisEvent => 
-                    connection.StreamAddAsync(streamName, redisEvent)
-                    .ContinueWith(previousTask => connection.StreamAddAsync(CategoryStreamPrefix, CategoryStream(streamName, previousTask.Result))))
+                .Select(redisEvent => Task.Run( async ()  =>
+                {
+                    var result = await connection.StreamAddAsync(streamName, redisEvent);
+                    await connection.StreamAddAsync(CategoryStreamPrefix, CategoryStream(streamName, (string) result));
+                }))
                 .ToArray();
-            // need a category stream.. 
+            //// need a category stream.. 
 
             await Task.WhenAll(tasks);
+
+            aggregate.MarkChangesAsCommitted();
         }
 
         public static async Task<T> GetById<T>(this IDatabase connection, Guid id) where T : AggregateRoot, new()
