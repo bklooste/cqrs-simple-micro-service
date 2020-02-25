@@ -8,15 +8,15 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.OpenApi.Models;
 using Microsoft.Extensions.Logging;
-
-using EventStore.ClientAPI;
-
+using StackExchange.Redis;
 
 namespace SimpleCQRS.Views
 {
     public class Startup
     {
         EventSubscriber? subscriber;
+        IConnectionMultiplexer? redisMultiplexer = null;
+
 
         public IConfiguration Configuration { get; }
 
@@ -28,7 +28,10 @@ namespace SimpleCQRS.Views
         public void ConfigureServices(IServiceCollection services)
         {
             services.AddControllers();
-            services.AddSingleton<IEventStoreConnection>(EventStoreConnection.Create(Configuration.GetConnectionString("EventStoreConnection")));
+
+            var connectionString = Configuration.GetConnectionString("RedisConnection");
+            this.redisMultiplexer = ConnectionMultiplexer.Connect(connectionString);
+       //     services.AddTransient<IDatabase>(svc => redisMultiplexer.GetDatabase());
 
             var inventoryListView = new InventoryListView();
             var inventoryView = new InventoryItemDetailView();
@@ -61,9 +64,8 @@ namespace SimpleCQRS.Views
             });
 
             // if using a DB make the projection / writer a 3rd generic host service.
-            var connection = EventStoreConnection.Create(Configuration.GetConnectionString("EventStoreConnection"));
-            connection.ConnectAsync().Wait();
-            this.subscriber = new EventSubscriber(connection, projector.Project, applicationLifeTime, app.ApplicationServices.GetRequiredService<ILogger<EventSubscriber>>());
+            redisMultiplexer!.ConnectionFailed += (sender, args) => applicationLifeTime.StopApplication();
+            this.subscriber = new EventSubscriber(() => redisMultiplexer!.GetDatabase(), projector.ProjectBatch, applicationLifeTime, app.ApplicationServices.GetRequiredService<ILogger<EventSubscriber>>());
             this.subscriber.Start();
         }
     }

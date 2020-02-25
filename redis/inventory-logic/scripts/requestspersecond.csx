@@ -34,7 +34,7 @@ public class HttpTest
 
 
         var id = Guid.NewGuid();
-        var url = $"http://localhost:52968/InventoryCommand/Add?name=name{id.ToString()}";
+        var url = $"http://localhost:54105/InventoryCommand/Add?name=name{id.ToString()}";
         client.PostAsync(url, null).Wait();
     }
 

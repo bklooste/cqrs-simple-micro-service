@@ -2,25 +2,26 @@
 
 using Microsoft.Extensions.Configuration;
 
-using EventStore.ClientAPI;
 using System.Collections.Generic;
+using StackExchange.Redis;
 
 namespace SimpleCQRS.Views.IntegrationTest
 {
     public class IntegrationTestFixture : IDisposable
     {
         readonly IConfiguration config;
+        readonly ConnectionMultiplexer redis;
 
-        public IEventStoreConnection StoreConnection { get; }
+        public IDatabase StoreConnection { get; }
         public int Port=> int.Parse(config["InventoryViewsServicePort"]);
 
-
+        //54106
         public IntegrationTestFixture() 
         {
             var configDefaults = new Dictionary<string, string>
             {
-                {"ConnectionStrings:EventStoreConnection", "ConnectTo=tcp://admin:changeit@127.0.0.1:1115"},
-                {"InventoryViewsServicePort", "53105"}
+                {"ConnectionStrings:RedisConnection", "127.0.0.1:6479,allowAdmin=false"},
+                {"InventoryViewsServicePort", "53106"}
             };
 
             this.config = new ConfigurationBuilder()
@@ -28,15 +29,15 @@ namespace SimpleCQRS.Views.IntegrationTest
                 .AddEnvironmentVariables()
                 .Build();
 
-            var connection = config["ConnectionStrings:EventStoreConnection"];
+            var connectionString = config["ConnectionStrings:RedisConnection"];
+            this.redis = ConnectionMultiplexer.Connect(connectionString);
 
-            this.StoreConnection = EventStoreConnection.Create(connection, "integrationTests");
-            this.StoreConnection.ConnectAsync().Wait();
+            this.StoreConnection = redis.GetDatabase();
         }
 
         public void Dispose()
         {
-            StoreConnection.Dispose();
+            this.redis.Dispose();
         }
     }
 }

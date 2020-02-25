@@ -38,7 +38,7 @@ public class HttpTest
             taskList.Add( Task.Run( async () =>  
             {       
                 var id = Guid.NewGuid();
-                var url = $"http://localhost:52968/InventoryCommand/Add?name=name{id.ToString()}";
+                var url = $"http://localhost:54105/InventoryCommand/Add?name=name{id.ToString()}";
                 await client.PostAsync(url, null); 
             }));
         }

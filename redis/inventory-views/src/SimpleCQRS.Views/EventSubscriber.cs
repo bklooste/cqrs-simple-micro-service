@@ -1,70 +1,104 @@
 ﻿using System;
+using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
-using EventStore.ClientAPI;
-
 using Newtonsoft.Json;
+using SimpleCQRS;
+using StackExchange.Redis;
 
 namespace SimpleCQRS.Views
 {
+
     // read events isolating our dependencies eg Eventstore and we can test Poco code
     public class EventSubscriber
     {
         const string CategoryStreamName = "$ce-inventory";
         const int TwoMinutesMaxStartTime = 120;
-        
+        const int BatchSize = 100;
+
+        const int IntervalToCheckForNewMessagesInMs = 5;
+
         readonly Microsoft.Extensions.Logging.ILogger logger;
-        readonly Func<Event,Task> playEvent;
+        readonly Func<Event[], Task> playEvents;
         readonly IHostApplicationLifetime appLifeTime;
-        readonly IEventStoreConnection connection;
+        readonly Func<IDatabase> connection;
+        readonly RedisKey streamName = (RedisKey)CategoryStreamName;
+        
+        Task? worker;
+        RedisValue? position;
+        bool liveProcessing = false;
 
-        EventStoreStreamCatchUpSubscription? subscriber;
-
-        public EventSubscriber(IEventStoreConnection connection, Func<Event, Task> playEvent, IHostApplicationLifetime applicationLifeTime, Microsoft.Extensions.Logging.ILogger logger)
+        public EventSubscriber(Func<IDatabase> connection, Func<Event[], Task> playEvents, IHostApplicationLifetime applicationLifeTime, Microsoft.Extensions.Logging.ILogger logger)
         {
             this.logger = logger;
             this.appLifeTime = applicationLifeTime;
-            this.playEvent = playEvent;
+            this.playEvents = playEvents;
             this.connection = connection;
+        }
+
+        public async Task DoWork()
+        {
+            while (true)
+            {
+                if (appLifeTime.ApplicationStopping.IsCancellationRequested)
+                    break;
+
+                try
+                {
+                    var conn = this.connection();
+                    var records = await conn.StreamRangeAsync(streamName, position , null , BatchSize );
+                    if (records.Any())
+                    {
+                        position = records.Last().Id;
+                        await playEvents(records.Select(ToEvent).ToArray());
+
+                    }
+                    else
+                    {
+                        if (liveProcessing == false)
+                        {
+                            liveProcessing = true;
+                            LiveProcessingStarted(DateTime.UtcNow);
+                        }
+                        await Task.Delay(IntervalToCheckForNewMessagesInMs);
+                    }
+                }
+                catch (Exception e)
+                {
+                    logger.LogError("ignored error", e);
+                    await Task.Delay(IntervalToCheckForNewMessagesInMs * 10);
+                }
+            }
         }
 
         public void Start()
         {
-            if (subscriber != null)
+            if (worker != null)
                 logger.LogError("Subscriber already started");
 
-            Task convertAndPlayEvent(EventStoreCatchUpSubscription sub, ResolvedEvent storeEvent) => playEvent(ToEvent(storeEvent));
-            void logStart(EventStoreCatchUpSubscription sub) => LiveProcessingStarted(sub, DateTime.Now);
-            this.subscriber = connection.SubscribeToStreamFrom(CategoryStreamName, StreamPosition.Start, CatchUpSubscriptionSettings.Default, convertAndPlayEvent, logStart, SubscriptionDropped);
-        }
+            this.worker = Task.Run(() => DoWork());
+       }
 
-        void LiveProcessingStarted(EventStoreCatchUpSubscription sub, DateTime timeStarted)
+        void LiveProcessingStarted(DateTime timeStarted)
         {
             var timeToStart = (DateTime.UtcNow - timeStarted).Seconds;
             if (timeToStart > TwoMinutesMaxStartTime)
-                logger.LogWarning($"EventStore Subscription live processing started , loading took {timeToStart} seconds. {sub.SubscriptionName} Is it time to redesign views");
+                logger.LogWarning($"Redis Subscription live processing started , loading took {timeToStart} seconds. Is it time to redesign views service");
             else
-                logger.LogInformation($"EventStore Subscription live processing started , loading took {timeToStart} seconds");
+                logger.LogInformation($"Redis Subscription live processing started , loading took {timeToStart} seconds");
         }
 
-        void SubscriptionDropped(EventStoreCatchUpSubscription sub, SubscriptionDropReason reason, Exception ex)
+        static Event ToEvent(StreamEntry storeEvent)
         {
-            if (ex != null)
-                logger.LogWarning(ex, $"EventStore Subscription Dropped {reason.ToString()}, {sub.SubscriptionName} restarting service");
-            else
-                logger.LogWarning($"EventStore Subscription Dropped, {reason.ToString()} restarting service");
-            appLifeTime.StopApplication();
-        }
-
-        static Event ToEvent(ResolvedEvent storeEvent)
-        {
-            var type = Type.GetType(storeEvent.Event.EventType);
-            var json = Encoding.UTF8.GetString(storeEvent.Event.Data);
-            return (Event)JsonConvert.DeserializeObject(json, type);
+            var typeString = storeEvent.Values.First(x => x.Name == "type").Value;
+            var type = Type.GetType(typeString) ?? throw new InvalidCastException($"cannot convert message {typeString}");
+            var json = Encoding.UTF8.GetString(storeEvent.Values.First(x => x.Name == "msg").Value);
+            var evnt = JsonConvert.DeserializeObject(json, type) ?? throw new InvalidCastException($"cannot convert message {typeString}");
+            return (Event) evnt ;
         }
     }
 }

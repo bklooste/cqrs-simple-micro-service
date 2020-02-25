@@ -7,13 +7,12 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.OpenApi.Models;
 using StackExchange.Redis;
-using System;
 
 namespace SimpleCQRS.API
 {
     public class Startup
     {
-        private ConnectionMultiplexer redisMultiplexer;
+        IConnectionMultiplexer? redisMultiplexer = null;
 
         public Startup(IConfiguration configuration)
         {

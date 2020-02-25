@@ -20,6 +20,14 @@ namespace SimpleCQRS.Views
             this.logger = logger;
         }
 
+        public Task ProjectBatch(Event[] resolvedEvent)
+        {
+            foreach (var evnt in resolvedEvent)
+                Project(evnt);
+
+            return Task.CompletedTask;
+        }
+
         public Task Project(Event resolvedEvent)
         {
             try

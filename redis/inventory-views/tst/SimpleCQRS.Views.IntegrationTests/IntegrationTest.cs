@@ -4,8 +4,8 @@ using System.Text;
 using System.Threading.Tasks;
 
 using AutoFixture.Xunit2;
-using EventStore.ClientAPI;
 using Newtonsoft.Json;
+using StackExchange.Redis;
 using Xunit;
 
 namespace SimpleCQRS.Views.IntegrationTest
@@ -16,7 +16,7 @@ namespace SimpleCQRS.Views.IntegrationTest
     public class IntegrationTest: IClassFixture<IntegrationTestFixture>
     {
         readonly HttpClient client = new System.Net.Http.HttpClient();
-        readonly IEventStoreConnection eventStoreConnection;
+        readonly IDatabase eventStoreConnection;
         readonly TimeSpan sleepMillisecondsDelay = TimeSpan.FromMilliseconds(1000);
 
         public IntegrationTest(IntegrationTestFixture fixture)
