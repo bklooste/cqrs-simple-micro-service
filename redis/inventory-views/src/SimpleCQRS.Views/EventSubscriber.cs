@@ -57,7 +57,7 @@ namespace SimpleCQRS.Views
                     {
                         nextPosition = Increment(records.Last().Id);
 
-                        // TODO use eval , we could do this concurrently as well but we want processing ordered.
+                        // TODO use eval , we could do this concurrently as well but we want processing ordered so then need to reorder , its really a job for eval
                         var results = new List<Event>();
 
                         foreach (var record  in records)
