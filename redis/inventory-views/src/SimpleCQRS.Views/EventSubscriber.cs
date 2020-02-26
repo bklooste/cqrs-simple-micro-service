@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -27,9 +29,9 @@ namespace SimpleCQRS.Views
         readonly IHostApplicationLifetime appLifeTime;
         readonly Func<IDatabase> connection;
         readonly RedisKey streamName = (RedisKey)CategoryStreamName;
-        
+
         Task? worker;
-        RedisValue? position;
+        RedisValue nextPosition = StreamPosition.Beginning;
         bool liveProcessing = false;
 
         public EventSubscriber(Func<IDatabase> connection, Func<Event[], Task> playEvents, IHostApplicationLifetime applicationLifeTime, Microsoft.Extensions.Logging.ILogger logger)
@@ -50,12 +52,21 @@ namespace SimpleCQRS.Views
                 try
                 {
                     var conn = this.connection();
-                    var records = await conn.StreamRangeAsync(streamName, position , null , BatchSize );
+                    var records = await conn.StreamRangeAsync(streamName, nextPosition, null, BatchSize);
                     if (records.Any())
                     {
-                        position = records.Last().Id;
-                        await playEvents(records.Select(ToEvent).ToArray());
+                        nextPosition = Increment(records.Last().Id);
 
+                        // TODO use eval , we could do this concurrently as well but we want processing ordered.
+                        var results = new List<Event>();
+
+                        foreach (var record  in records)
+                        {
+                            var msgs = await conn.StreamRangeAsync(record.Values.FirstOrDefault(x => x.Name == "stream").Value.ToString(), record.Values.FirstOrDefault(x => x.Name == "key").Value, null, 1);
+                            results.Add(ToEvent(msgs.First()));
+                        }
+
+                        await playEvents(results.ToArray());
                     }
                     else
                     {
@@ -69,10 +80,22 @@ namespace SimpleCQRS.Views
                 }
                 catch (Exception e)
                 {
-                    logger.LogError("ignored error", e);
+                    logger.LogError(e, "BATCH process ignored error " + e.Message + " pos:" + nextPosition.ToString());
                     await Task.Delay(IntervalToCheckForNewMessagesInMs * 10);
                 }
             }
+        }
+
+        private RedisValue Increment(RedisValue? position)
+        {
+            if (position == null || position == StreamPosition.Beginning)
+                return StreamPosition.Beginning;
+
+            var key = position.ToString().Split("-");
+            int count = int.Parse(key[1]);
+            count++;
+            return key[0] + "-" + count.ToString();
+
         }
 
         public void Start()
@@ -81,7 +104,7 @@ namespace SimpleCQRS.Views
                 logger.LogError("Subscriber already started");
 
             this.worker = Task.Run(() => DoWork());
-       }
+        }
 
         void LiveProcessingStarted(DateTime timeStarted)
         {
@@ -98,7 +121,7 @@ namespace SimpleCQRS.Views
             var type = Type.GetType(typeString) ?? throw new InvalidCastException($"cannot convert message {typeString}");
             var json = Encoding.UTF8.GetString(storeEvent.Values.First(x => x.Name == "msg").Value);
             var evnt = JsonConvert.DeserializeObject(json, type) ?? throw new InvalidCastException($"cannot convert message {typeString}");
-            return (Event) evnt ;
+            return (Event)evnt;
         }
     }
 }

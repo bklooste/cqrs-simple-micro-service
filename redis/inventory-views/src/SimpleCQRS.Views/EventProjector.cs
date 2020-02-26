@@ -23,7 +23,15 @@ namespace SimpleCQRS.Views
         public Task ProjectBatch(Event[] resolvedEvent)
         {
             foreach (var evnt in resolvedEvent)
-                Project(evnt);
+                try
+                {
+                    Project(evnt);
+                }
+                catch (Exception ex )
+                {
+                    logger.LogError(ex, "ignored error" + ex.Message);
+                }
+
 
             return Task.CompletedTask;
         }

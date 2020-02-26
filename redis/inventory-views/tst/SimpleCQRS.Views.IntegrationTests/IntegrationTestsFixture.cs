@@ -21,7 +21,7 @@ namespace SimpleCQRS.Views.IntegrationTest
             var configDefaults = new Dictionary<string, string>
             {
                 {"ConnectionStrings:RedisConnection", "127.0.0.1:6479,allowAdmin=false"},
-                {"InventoryViewsServicePort", "53106"}
+                {"InventoryViewsServicePort", "54106"}
             };
 
             this.config = new ConfigurationBuilder()

@@ -16,12 +16,12 @@ namespace SimpleCQRS.Views.IntegrationTest
     public class IntegrationTest: IClassFixture<IntegrationTestFixture>
     {
         readonly HttpClient client = new System.Net.Http.HttpClient();
-        readonly IDatabase eventStoreConnection;
+        readonly IDatabase connection;
         readonly TimeSpan sleepMillisecondsDelay = TimeSpan.FromMilliseconds(1000);
 
         public IntegrationTest(IntegrationTestFixture fixture)
         {
-            eventStoreConnection = fixture.StoreConnection;
+            connection = fixture.StoreConnection;
             client.BaseAddress = new Uri($"http://localhost:{fixture.Port}/");
 
             this.client.BlockGetTillAvailable("items/");
@@ -31,10 +31,23 @@ namespace SimpleCQRS.Views.IntegrationTest
         public async Task when_create_event_then_its_in_list_view(Guid id, string itemName)
         {
             string json = $"{{\"Id\": \"{id}\",\"Name\": \"{itemName}\", \"Version\": 0}}";
+                        var jsonBytes = Encoding.UTF8.GetBytes(json);
             var streamName = $"inventory-InventoryItemLogic{id}";
-            var jsonBytes = Encoding.UTF8.GetBytes(json);
-            var eventData = new EventData(Guid.NewGuid(), "SimpleCQRS.InventoryItemCreated", true, jsonBytes, null);
-            await eventStoreConnection.AppendToStreamAsync(streamName, ExpectedVersion.NoStream, eventData);
+            var eventData = new NameValueEntry[]
+            {
+                new NameValueEntry("id" , Guid.NewGuid().ToString()),
+                new NameValueEntry("type" , "SimpleCQRS.InventoryItemCreated"),
+                new NameValueEntry("msg" , jsonBytes),
+                new NameValueEntry("partition" , string.Empty),
+                new NameValueEntry("metadata" , string.Empty)
+            };
+            var result = await connection.StreamAddAsync(streamName, eventData);
+
+            await connection.StreamAddAsync("$ce-inventory", new NameValueEntry[]
+            {
+                new NameValueEntry("stream" , streamName),
+                new NameValueEntry("key" , result),
+            });
             await Task.Delay(sleepMillisecondsDelay*2);
 
             var response = await client.GetStringAsync("items/");
@@ -49,9 +62,23 @@ namespace SimpleCQRS.Views.IntegrationTest
         public async Task when_create_event_then_its_in_item_detail_view(Guid id, string itemName)
         {
             string json = $"{{\"Id\": \"{id}\",\"Name\": \"{itemName}\", \"Version\": 0}}";
+            var streamName = $"inventory-InventoryItemLogic{id}";
             var jsonBytes = Encoding.UTF8.GetBytes(json);
-            var eventData = new EventData(Guid.NewGuid(), "SimpleCQRS.InventoryItemCreated", true, jsonBytes, null);
-            await eventStoreConnection.AppendToStreamAsync($"inventory-InventoryItemLogic{id}", ExpectedVersion.NoStream, eventData);
+            var eventData = new NameValueEntry[]
+            {
+                new NameValueEntry("id" , Guid.NewGuid().ToString()),
+                new NameValueEntry("type" , "SimpleCQRS.InventoryItemCreated"),
+                new NameValueEntry("msg" , jsonBytes),
+                new NameValueEntry("partition" , string.Empty),
+                new NameValueEntry("metadata" , string.Empty)
+            };
+            var result = await connection.StreamAddAsync(streamName, eventData);
+
+            await connection.StreamAddAsync("$ce-inventory", new NameValueEntry[]
+            {
+                new NameValueEntry("stream" , streamName),
+                new NameValueEntry("key" , result),
+            });
             await Task.Delay(sleepMillisecondsDelay);
 
             using var response = await client.GetAsync($"items/{id}");

@@ -1,14 +1,14 @@
 version: '3.4'
 
 services:
-  simplecqrs-redis:
+  simplecqrs-redis-view:
     image: ${DOCKER_REGISTRY-}simplecqrsredisviews
-    container_name: simplecqrs-redis-itest
+    container_name: simplecqrs-redis-view-itest
     environment:
       - LOG_LEVEL=DEBUG
       - ConnectionStrings:RedisConnection=redis:6379,allowAdmin=false     
     ports:
-      - 54105:80     
+      - 54106:80     
       
   redis:
     image: redis:alpine

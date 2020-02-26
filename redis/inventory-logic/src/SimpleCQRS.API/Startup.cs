@@ -40,7 +40,7 @@ namespace SimpleCQRS.API
             if (env.IsDevelopment())
                 app.UseDeveloperExceptionPage();
 
-            redisMultiplexer.ConnectionFailed += (sender, args) => appLifeTime.StopApplication();
+            redisMultiplexer!.ConnectionFailed += (sender, args) => appLifeTime.StopApplication();
 
             app.UseRouting();
 
