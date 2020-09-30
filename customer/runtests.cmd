@@ -11,7 +11,7 @@ REM  docker exec cust-postgres psql -U postgres -c 'CREATE EXTENSION IF NOT EXIS
 REM docker exec cust-postgres psql -U postgres -c "SELECT * FROM pg_extension"
 
 
-docker run --name cust-postgres -e POSTGRES_PASSWORD=mysecretpassword -d clkao/postgres-plv8 psql -U postgres -c "SELECT plv8_version();" -p 5432:5432
+docker run --name cust-postgres -p 5432:5432 -e POSTGRES_PASSWORD=mysecretpassword -d clkao/postgres-plv8 psql -U postgres -c "SELECT plv8_version();" 
 REM docker exec cust-postgres psql -U postgres -c "SELECT plv8_version();"
 docker start cust-postgres
 docker run -d --name customer-itest -e "DOTNET_USE_POLLING_FILE_WATCHER=1" -e ConnectionStrings:EventStoreConnection=%EVENTSTORE_CONNECTION%  -p %InventoryLogicServicePort%:80 customer:latest

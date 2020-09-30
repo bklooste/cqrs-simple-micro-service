@@ -83,16 +83,32 @@ namespace Simple.Customers
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(CustomerView[]), 200)]
-        public async Task<ActionResult<string>> GetByName(string lastNamePrefix)
+        public ActionResult<string> GetByName(string lastNamePrefix)
         {
             if (string.IsNullOrEmpty(lastNamePrefix) || lastNamePrefix.Length < 4)
                 return BadRequest("name of at least 4 characters was not received");
 
             using var session = store.LightweightSession();
-            var json = await session.QueryAsync(new FindCustomerJsonByNameQuery { LastNamePrefix = lastNamePrefix });
+            var json = session.Query(new FindCustomerJsonByNameQuery { LastNamePrefix = lastNamePrefix });
 
             return Ok(json);
         }
+
+        //[HttpGet("asyncbyname={lastNamePrefix}")]
+        //[ProducesResponseType(StatusCodes.Status200OK)]
+        //[ProducesResponseType(StatusCodes.Status400BadRequest)]
+        //[ProducesResponseType(typeof(CustomerView[]), 200)]
+        //public ActionResult<string> GetByNameAsync(string lastNamePrefix)
+        //{
+        //    if (string.IsNullOrEmpty(lastNamePrefix) || lastNamePrefix.Length < 3)
+        //        return BadRequest("name of at least 3 characters was not received");
+
+        //    using var session = store.LightweightSession();
+        //    lastNamePrefixvar json = session.QueryAsync(new FindCustomerJsonByNameQueryAsync { LastNamePrefix = lastNamePrefix });
+
+        //    return Ok(json);
+        //}
+
 
         [HttpGet("IsAvailable")]
         public ActionResult IsAvailable()
