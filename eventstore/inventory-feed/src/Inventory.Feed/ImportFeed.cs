@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -7,7 +7,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
-using EventStore.ClientAPI;
+using EventStore.Client;
 using Newtonsoft.Json;
 
 namespace Inventory.Feed
@@ -20,16 +20,16 @@ namespace Inventory.Feed
         readonly CancellationTokenSource stoppingCts = new CancellationTokenSource();
         readonly ILogger<ImportFeed> logger;
         readonly FixerHttpExchangeProvider exchangeRateProvider;
-        readonly IEventStoreConnection connection;
-        readonly IHostApplicationLifetime hostLifeTime;
+        readonly EventStoreClient connection;
         Task? executingTask;
 
-        public ImportFeed(ILogger<ImportFeed> logger, IConfiguration configuration, IHostApplicationLifetime hostLifeTime)
+        public ImportFeed(ILogger<ImportFeed> logger, IConfiguration configuration)
         {
             this.logger = logger;
             this.exchangeRateProvider = new FixerHttpExchangeProvider(configuration["Fixer:Url"]);
-            this.connection = EventStoreConnection.Create(configuration.GetConnectionString("EventStoreConnection"), "exchangefeed");
-            this.hostLifeTime = hostLifeTime;
+            var settings = EventStoreClientSettings.Create(configuration.GetConnectionString("EventStoreConnection"));
+            settings.ConnectionName = "exchangefeed";
+            this.connection = new EventStoreClient(settings);
         }
 
         async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -51,21 +51,15 @@ namespace Inventory.Feed
             var json = JsonConvert.SerializeObject(new { Code = code, Rate = rate, Time = time });
             var jsonBytes = Encoding.UTF8.GetBytes(json);
 
-            var eventData = new EventData(Guid.NewGuid(), EventTypeName, true, jsonBytes, null);
-            await connection.AppendToStreamAsync(streamName, ExpectedVersion.Any, eventData);
+            var eventData = new EventData(Uuid.NewUuid(), EventTypeName, jsonBytes);
+            await connection.AppendToStreamAsync(streamName, StreamState.Any, new[] { eventData });
         }
 
-        public async Task StartAsync(CancellationToken cancellationToken)
+        public Task StartAsync(CancellationToken cancellationToken)
         {
             logger.LogInformation("Start Async");
-            await connection.ConnectAsync();
-            connection.Closed += (sender, e) =>
-            {
-                logger.LogError("Lost connection restarting service");
-                hostLifeTime.StopApplication();
-            };
             executingTask = ExecuteAsync(stoppingCts.Token);
-            return;
+            return Task.CompletedTask;
         }
 
         public async Task StopAsync(CancellationToken cancellationToken)
@@ -77,18 +71,18 @@ namespace Inventory.Feed
 
             try
             {
-                connection.Close();
                 stoppingCts.Cancel();
             }
             finally
             {
-                await Task.WhenAny(executingTask, Task.Delay(Timeout.Infinite, cancellationToken));
+                await Task.WhenAny(executingTask, Task.Delay(System.Threading.Timeout.Infinite, cancellationToken));
             }
         }
 
         public void Dispose()
         {
             stoppingCts.Cancel();
+            connection.Dispose();
         }
     }
 }

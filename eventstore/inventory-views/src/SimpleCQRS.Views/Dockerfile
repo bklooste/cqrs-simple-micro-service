@@ -1,8 +1,8 @@
-FROM mcr.microsoft.com/dotnet/core/aspnet:3.1 AS base
+FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS base
 WORKDIR /app
 EXPOSE 80
 
-FROM mcr.microsoft.com/dotnet/core/sdk:3.1 AS build
+FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
 COPY ["src/SimpleCQRS.Views/SimpleCQRS.Views.csproj", "src/SimpleCQRS.Views/"]
 RUN dotnet restore "src/SimpleCQRS.Views/SimpleCQRS.Views.csproj"

@@ -1,11 +1,11 @@
-using EventStore.ClientAPI;
+using EventStore.Client;
 
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using Microsoft.OpenApi.Models;
+using Microsoft.OpenApi;
 using System;
 
 namespace SimpleCQRS.API
@@ -25,8 +25,8 @@ namespace SimpleCQRS.API
             services.AddControllers();
 
             var connectionString = Configuration.GetConnectionString("EventStoreConnection");
-            var connection = EventStoreConnection.Create(connectionString);
-            services.AddSingleton<IEventStoreConnection>(connection);
+            var settings = EventStoreClientSettings.Create(connectionString);
+            services.AddSingleton(new EventStoreClient(settings));
 
             services.AddSwaggerGen(c =>
             {
@@ -34,13 +34,10 @@ namespace SimpleCQRS.API
             });
         }
 
-        public void Configure(IApplicationBuilder app, IWebHostEnvironment env, IHostApplicationLifetime appLifeTime, IEventStoreConnection connection)
+        public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
         {
             if (env.IsDevelopment())
                 app.UseDeveloperExceptionPage();
-
-            connection.ConnectAsync().Wait();
-            connection.Disconnected += (sender, args) => appLifeTime.StopApplication();
 
             app.UseRouting();
 

@@ -1,9 +1,7 @@
-﻿using System;
+using System;
+using System.Collections.Generic;
 
 using Microsoft.Extensions.Configuration;
-
-using EventStore.ClientAPI;
-using System.Collections.Generic;
 
 namespace Simple.Customers.IntegrationTest
 {
@@ -11,32 +9,23 @@ namespace Simple.Customers.IntegrationTest
     {
         readonly IConfiguration config;
 
-        public IEventStoreConnection StoreConnection { get; }
-        public int Port=> int.Parse(config["InventoryLogicServicePort"]);
+        public int Port => int.Parse(config["CustomerServicePort"]);
 
-
-        public IntegrationTestFixture() 
+        public IntegrationTestFixture()
         {
             var configDefaults = new Dictionary<string, string>
             {
-                {"ConnectionStrings:EventStoreConnection", "ConnectTo=tcp://admin:changeit@127.0.0.1:1114"},
-                {"InventoryLogicServicePort", "53104"}
+                {"CustomerServicePort", "54104"}
             };
 
             this.config = new ConfigurationBuilder()
                 .AddInMemoryCollection(configDefaults)
                 .AddEnvironmentVariables()
                 .Build();
-
-            var connection = config["ConnectionStrings:EventStoreConnection"];
-
-            this.StoreConnection = EventStoreConnection.Create(connection, "integrationTests");
-            this.StoreConnection.ConnectAsync().Wait();
         }
 
         public void Dispose()
         {
-            StoreConnection.Dispose();
         }
     }
 }

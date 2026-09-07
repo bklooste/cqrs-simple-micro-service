@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 
-using EventStore.ClientAPI;
+using EventStore.Client;
 
 namespace SimpleCQRS.API
 {
@@ -15,11 +15,11 @@ namespace SimpleCQRS.API
     public class InventoryCommandController : ControllerBase
     {
 
-        readonly ILogger<InventoryCommandController> logger; 
-        readonly IEventStoreConnection connection;
-        readonly ExternalLogic logic; 
+        readonly ILogger<InventoryCommandController> logger;
+        readonly EventStoreClient connection;
+        readonly ExternalLogic logic;
 
-        public InventoryCommandController(ILogger<InventoryCommandController> logger, IEventStoreConnection connection)
+        public InventoryCommandController(ILogger<InventoryCommandController> logger, EventStoreClient connection)
         {
             this.logger = logger;
             this.connection = connection;

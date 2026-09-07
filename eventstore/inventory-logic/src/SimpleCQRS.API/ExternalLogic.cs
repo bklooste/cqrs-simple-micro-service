@@ -1,15 +1,15 @@
 ﻿
 using System;
 using System.Collections.Generic;
-using EventStore.ClientAPI;
+using EventStore.Client;
 
 namespace SimpleCQRS.API
 {
     public class ExternalLogic
     {
-        readonly IEventStoreConnection connection;
+        readonly EventStoreClient connection;
 
-        public ExternalLogic(IEventStoreConnection connection)
+        public ExternalLogic(EventStoreClient connection)
         {
             this.connection = connection;
         }

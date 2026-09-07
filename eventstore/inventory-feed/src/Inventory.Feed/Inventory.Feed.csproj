@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk.Web">
 
   <PropertyGroup>
-    <TargetFramework>netcoreapp3.1</TargetFramework>
+    <TargetFramework>net10.0</TargetFramework>
     <UserSecretsId>467a269e-fcda-403e-b07f-66c03b9fe807</UserSecretsId>
     <ApplicationInsightsResourceId>/subscriptions/a50ec426-f691-4e60-b2c5-31158d1526c8/resourcegroups/Default-ApplicationInsights-EastUS/providers/microsoft.insights/components/Inventory.Feed</ApplicationInsightsResourceId>
     <ApplicationInsightsAnnotationResourceId>/subscriptions/a50ec426-f691-4e60-b2c5-31158d1526c8/resourcegroups/Default-ApplicationInsights-EastUS/providers/microsoft.insights/components/Inventory.Feed</ApplicationInsightsAnnotationResourceId>
@@ -12,10 +12,10 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="EventStore.Client" Version="5.0.2" />
-    <PackageReference Include="Microsoft.Extensions.Logging.ApplicationInsights" Version="2.10.0" />
-    <PackageReference Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets" Version="1.9.2" />
-    <PackageReference Include="Newtonsoft.Json" Version="12.0.2" />
+    <PackageReference Include="EventStore.Client.Grpc.Streams" Version="23.3.9" />
+    <PackageReference Include="Microsoft.Extensions.Logging.ApplicationInsights" Version="2.23.0" />
+    <PackageReference Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets" Version="1.23.0" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
   </ItemGroup>
 
   <ItemGroup>

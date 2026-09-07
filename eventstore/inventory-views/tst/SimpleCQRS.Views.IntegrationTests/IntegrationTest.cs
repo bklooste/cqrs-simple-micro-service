@@ -4,7 +4,7 @@ using System.Text;
 using System.Threading.Tasks;
 
 using AutoFixture.Xunit2;
-using EventStore.ClientAPI;
+using EventStore.Client;
 using Newtonsoft.Json;
 using Xunit;
 
@@ -16,7 +16,7 @@ namespace SimpleCQRS.Views.IntegrationTest
     public class IntegrationTest: IClassFixture<IntegrationTestFixture>
     {
         readonly HttpClient client = new System.Net.Http.HttpClient();
-        readonly IEventStoreConnection eventStoreConnection;
+        readonly EventStoreClient eventStoreConnection;
         readonly TimeSpan sleepMillisecondsDelay = TimeSpan.FromMilliseconds(1000);
 
         public IntegrationTest(IntegrationTestFixture fixture)
@@ -33,8 +33,8 @@ namespace SimpleCQRS.Views.IntegrationTest
             string json = $"{{\"Id\": \"{id}\",\"Name\": \"{itemName}\", \"Version\": 0}}";
             var streamName = $"inventory-InventoryItemLogic{id}";
             var jsonBytes = Encoding.UTF8.GetBytes(json);
-            var eventData = new EventData(Guid.NewGuid(), "SimpleCQRS.InventoryItemCreated", true, jsonBytes, null);
-            await eventStoreConnection.AppendToStreamAsync(streamName, ExpectedVersion.NoStream, eventData);
+            var eventData = new EventData(Uuid.NewUuid(), "SimpleCQRS.InventoryItemCreated", jsonBytes);
+            await eventStoreConnection.AppendToStreamAsync(streamName, StreamState.NoStream, new[] { eventData });
             await Task.Delay(sleepMillisecondsDelay*2);
 
             var response = await client.GetStringAsync("items/");
@@ -50,8 +50,8 @@ namespace SimpleCQRS.Views.IntegrationTest
         {
             string json = $"{{\"Id\": \"{id}\",\"Name\": \"{itemName}\", \"Version\": 0}}";
             var jsonBytes = Encoding.UTF8.GetBytes(json);
-            var eventData = new EventData(Guid.NewGuid(), "SimpleCQRS.InventoryItemCreated", true, jsonBytes, null);
-            await eventStoreConnection.AppendToStreamAsync($"inventory-InventoryItemLogic{id}", ExpectedVersion.NoStream, eventData);
+            var eventData = new EventData(Uuid.NewUuid(), "SimpleCQRS.InventoryItemCreated", jsonBytes);
+            await eventStoreConnection.AppendToStreamAsync($"inventory-InventoryItemLogic{id}", StreamState.NoStream, new[] { eventData });
             await Task.Delay(sleepMillisecondsDelay);
 
             using var response = await client.GetAsync($"items/{id}");

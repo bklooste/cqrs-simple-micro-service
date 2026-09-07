@@ -1,8 +1,8 @@
-﻿using System;
+using System;
 
 using Microsoft.Extensions.Configuration;
 
-using EventStore.ClientAPI;
+using EventStore.Client;
 using System.Collections.Generic;
 
 namespace SimpleCQRS.Views.IntegrationTest
@@ -11,15 +11,15 @@ namespace SimpleCQRS.Views.IntegrationTest
     {
         readonly IConfiguration config;
 
-        public IEventStoreConnection StoreConnection { get; }
+        public EventStoreClient StoreConnection { get; }
         public int Port=> int.Parse(config["InventoryViewsServicePort"]);
 
 
-        public IntegrationTestFixture() 
+        public IntegrationTestFixture()
         {
             var configDefaults = new Dictionary<string, string>
             {
-                {"ConnectionStrings:EventStoreConnection", "ConnectTo=tcp://admin:changeit@127.0.0.1:1115"},
+                {"ConnectionStrings:EventStoreConnection", "esdb://admin:changeit@127.0.0.1:2115?tls=false"},
                 {"InventoryViewsServicePort", "53105"}
             };
 
@@ -30,8 +30,9 @@ namespace SimpleCQRS.Views.IntegrationTest
 
             var connection = config["ConnectionStrings:EventStoreConnection"];
 
-            this.StoreConnection = EventStoreConnection.Create(connection, "integrationTests");
-            this.StoreConnection.ConnectAsync().Wait();
+            var settings = EventStoreClientSettings.Create(connection);
+            settings.ConnectionName = "integrationTests";
+            this.StoreConnection = new EventStoreClient(settings);
         }
 
         public void Dispose()

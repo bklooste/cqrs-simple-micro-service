@@ -16,18 +16,18 @@ namespace Simple.Customers.IntegrationTest
 
         public ApiHttpTests(IntegrationTestFixture fixture)
         {
-            client.BaseAddress = new Uri($"http://localhost:{fixture.Port}/InventoryCommand/");
-            
+            client.BaseAddress = new Uri($"http://localhost:{fixture.Port}/api/Customers/");
+
             this.client.BlockGetTillAvailable("IsAvailable");
         }
 
         // if the service does security we can and should test here.
 
         [Theory, AutoData]
-        public async Task when_create_event_then_its_in_store_in_correct_format(Guid id)
+        public async Task when_create_customer_without_lastname_then_bad_request(string firstName)
         {
-            var result = await client.PostAsync($"Add?name=&id={id}", null);
-            
+            var result = await client.PostAsync($"?firstName={Uri.EscapeDataString(firstName)}&lastName=", null);
+
             Assert.Equal(System.Net.HttpStatusCode.BadRequest, result.StatusCode);
         }
     }
