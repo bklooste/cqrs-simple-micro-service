@@ -11,8 +11,10 @@ namespace SimpleCQRS.Views
     // so this projection can be asked to handle the same event twice. The list view is a plain
     // SetAsync/DeleteAsync per id, which is naturally idempotent. The detail view carries a running
     // count, so every accumulative handler reads the current view first and skips the update when
-    // meta.Version is not newer than what's already stored - without that guard a redelivered
-    // ItemsCheckedInToInventory/ItemsRemovedFromInventory would apply its count a second time.
+    // meta.Id (the event's position in the Redis stream) is not newer than what's already stored -
+    // without that guard a redelivered ItemsCheckedInToInventory/ItemsRemovedFromInventory would
+    // apply its count a second time. Ordering is on the stream position, not the aggregate's own
+    // version counter, since publish order between write and read is only guaranteed by the stream.
     public class InventoryProjection :
         IProjection<InventoryItemCreated>,
         IProjection<InventoryItemRenamed>,
@@ -32,7 +34,7 @@ namespace SimpleCQRS.Views
         public async ValueTask HandleAsync(InventoryItemCreated @event, EventMeta meta, CancellationToken ct)
         {
             await listView.SetAsync(@event.Id.ToString(), new InventoryItemListDto(@event.Id, @event.Name), ct);
-            await detailView.SetAsync(@event.Id.ToString(), new InventoryItemDetailsDto(@event.Id, @event.Name, 0, meta.Version), ct);
+            await detailView.SetAsync(@event.Id.ToString(), new InventoryItemDetailsDto(@event.Id, @event.Name, 0, meta.Id), ct);
         }
 
         public async ValueTask HandleAsync(InventoryItemRenamed @event, EventMeta meta, CancellationToken ct)
@@ -45,33 +47,33 @@ namespace SimpleCQRS.Views
             }
 
             var detail = await detailView.GetAsync(@event.Id.ToString(), ct);
-            if (detail is null || detail.Version >= meta.Version)
+            if (detail is null || detail.StreamPosition >= meta.Id)
                 return;
 
             detail.Name = @event.NewName;
-            detail.Version = meta.Version;
+            detail.StreamPosition = meta.Id;
             await detailView.SetAsync(@event.Id.ToString(), detail, ct);
         }
 
         public async ValueTask HandleAsync(ItemsCheckedInToInventory @event, EventMeta meta, CancellationToken ct)
         {
             var detail = await detailView.GetAsync(@event.Id.ToString(), ct);
-            if (detail is null || detail.Version >= meta.Version)
+            if (detail is null || detail.StreamPosition >= meta.Id)
                 return;
 
             detail.CurrentCount += @event.Count;
-            detail.Version = meta.Version;
+            detail.StreamPosition = meta.Id;
             await detailView.SetAsync(@event.Id.ToString(), detail, ct);
         }
 
         public async ValueTask HandleAsync(ItemsRemovedFromInventory @event, EventMeta meta, CancellationToken ct)
         {
             var detail = await detailView.GetAsync(@event.Id.ToString(), ct);
-            if (detail is null || detail.Version >= meta.Version)
+            if (detail is null || detail.StreamPosition >= meta.Id)
                 return;
 
             detail.CurrentCount -= @event.Count;
-            detail.Version = meta.Version;
+            detail.StreamPosition = meta.Id;
             await detailView.SetAsync(@event.Id.ToString(), detail, ct);
         }
 

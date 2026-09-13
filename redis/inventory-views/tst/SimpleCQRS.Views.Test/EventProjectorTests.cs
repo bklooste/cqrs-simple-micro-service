@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using AutoFixture.Xunit2;
 
 using RedisEvents.EventSourcing;
+using RedisEvents.Wire;
 
 using SimpleCQRS;
 using SimpleCQRS.Views;
@@ -15,7 +16,7 @@ namespace SimpleCQRS.API.Test
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE1006:Naming Styles", Justification = "Long test names")]
     public class EventProjectorTests
     {
-        static EventMeta Meta(string id, int version) => new(id, version, RedisEvents.Wire.StreamId.Min, string.Empty);
+        static EventMeta Meta(string id, long seq) => new(id, new StreamId(0, seq), string.Empty);
 
         [Theory, AutoData]
         public async Task when_created_then_both_views_are_projected_to(InventoryItemCreated msg)
@@ -41,7 +42,7 @@ namespace SimpleCQRS.API.Test
         {
             var listView = new InMemoryViewStore<InventoryItemListDto>();
             var detailView = new InMemoryViewStore<InventoryItemDetailsDto>();
-            await detailView.SetAsync(msg.Id.ToString(), new InventoryItemDetailsDto(msg.Id, name, preCount, 1));
+            await detailView.SetAsync(msg.Id.ToString(), new InventoryItemDetailsDto(msg.Id, name, preCount, new StreamId(0, 1)));
             var projection = new InventoryProjection(listView, detailView);
 
             await projection.HandleAsync(msg, Meta(msg.Id.ToString(), 2), CancellationToken.None);
@@ -55,8 +56,8 @@ namespace SimpleCQRS.API.Test
         {
             var listView = new InMemoryViewStore<InventoryItemListDto>();
             var detailView = new InMemoryViewStore<InventoryItemDetailsDto>();
-            // Version 2 has already been recorded - a redelivery of the same event at version 2 must be ignored.
-            await detailView.SetAsync(msg.Id.ToString(), new InventoryItemDetailsDto(msg.Id, name, preCount, 2));
+            // Stream position 0-2 has already been recorded - a redelivery of the same event at that position must be ignored.
+            await detailView.SetAsync(msg.Id.ToString(), new InventoryItemDetailsDto(msg.Id, name, preCount, new StreamId(0, 2)));
             var projection = new InventoryProjection(listView, detailView);
 
             await projection.HandleAsync(msg, Meta(msg.Id.ToString(), 2), CancellationToken.None);
@@ -71,7 +72,7 @@ namespace SimpleCQRS.API.Test
             var listView = new InMemoryViewStore<InventoryItemListDto>();
             var detailView = new InMemoryViewStore<InventoryItemDetailsDto>();
             await listView.SetAsync(msg.Id.ToString(), new InventoryItemListDto(msg.Id, name));
-            await detailView.SetAsync(msg.Id.ToString(), new InventoryItemDetailsDto(msg.Id, name, 0, 1));
+            await detailView.SetAsync(msg.Id.ToString(), new InventoryItemDetailsDto(msg.Id, name, 0, new StreamId(0, 1)));
             var projection = new InventoryProjection(listView, detailView);
 
             await projection.HandleAsync(msg, Meta(msg.Id.ToString(), 2), CancellationToken.None);
