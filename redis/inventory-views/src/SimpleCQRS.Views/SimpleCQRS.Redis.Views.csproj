@@ -6,13 +6,13 @@
     <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
     <LangVersion>preview</LangVersion>
     <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
     <DockerfileContext>..\..</DockerfileContext>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets" Version="1.23.0" />
-    <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
-    <PackageReference Include="StackExchange.Redis" Version="3.1.31" />
+    <PackageReference Include="RedisEvents.EventSourcing" Version="0.1.24" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="10.2.3" />
   </ItemGroup>
 

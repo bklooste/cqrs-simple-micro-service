@@ -1,6 +1,6 @@
-﻿
 using System;
-using System.Diagnostics;
+
+using RedisEvents.EventSourcing;
 
 namespace SimpleCQRS.API
 {
@@ -9,63 +9,57 @@ namespace SimpleCQRS.API
         bool activated;
         Guid id;
 
-        public InventoryItemLogic() { }
+        public InventoryItemLogic()
+        {
+            On<InventoryItemCreated>(e =>
+            {
+                id = e.Id;
+                activated = true;
+            });
 
-        public InventoryItemLogic(Guid id, string name)
+            On<InventoryItemDeactivated>(e => activated = false);
+            On<InventoryItemRenamed>(e => { });
+            On<ItemsCheckedInToInventory>(e => { });
+            On<ItemsRemovedFromInventory>(e => { });
+        }
+
+        public InventoryItemLogic(Guid id, string name) : this()
         {
             if (string.IsNullOrEmpty(name))
                 throw new ArgumentException("name is not valid");
-            ApplyChange(new InventoryItemCreated(id, name));
+            Raise(new InventoryItemCreated(id, name));
         }
 
         public void ChangeName(string newName)
         {
             if (string.IsNullOrEmpty(newName))
                 throw new ArgumentException("newName is not valid");
-            ApplyChange(new InventoryItemRenamed(id, newName));
+            Raise(new InventoryItemRenamed(id, newName));
         }
 
         public void Remove(int count)
         {
             if (count <= 0)
                 throw new InvalidOperationException("cant remove negative count from inventory");
-            ApplyChange(new ItemsRemovedFromInventory(id, count));
+            Raise(new ItemsRemovedFromInventory(id, count));
         }
 
         public void CheckIn(int count, float price)
         {
             if (count <= 0)
                 throw new InvalidOperationException($"must have a count greater than 0 to add to inventory pirce {price}");
-            ApplyChange(new ItemsCheckedInToInventory(id, count));
+            Raise(new ItemsCheckedInToInventory(id, count));
         }
 
         public void Deactivate()
         {
             if (!activated)
                 throw new InvalidOperationException("already deactivated");
-            ApplyChange(new InventoryItemDeactivated(id));
+            Raise(new InventoryItemDeactivated(id));
         }
 
-        public override Guid Id
-        {
-            get { return id; }
-        }
+        public override string AggregateName => "Inventory";
 
-        // Applies can go to partial class when you have a lot of logic , fix internal via other way at home
-        internal void Apply(InventoryItemCreated e)
-        {
-            id = e.Id;
-            activated = true;
-        }
-
-        internal void Apply(InventoryItemDeactivated e)
-        {
-            activated = false;
-        }
-
-        internal void Apply(Event e)
-        {
-            Debug.WriteLine($"nothing to play for event {e.GetType().Name} - dont delete this method");
-        }
+        public override string Id => id.ToString();
     }
 }

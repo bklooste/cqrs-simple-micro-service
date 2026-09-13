@@ -2,13 +2,8 @@ using System;
 
 namespace SimpleCQRS
 {
-    public class Event
-    {
-        public int Version;
-    }
-
     // Do not mutate these
-    public class InventoryItemCreated : Event
+    public class InventoryItemCreated
     {
         public readonly Guid Id;
         public readonly string Name;
@@ -19,7 +14,7 @@ namespace SimpleCQRS
         }
     }
 
-    public class InventoryItemDeactivated : Event
+    public class InventoryItemDeactivated
     {
         public readonly Guid Id;
 
@@ -29,7 +24,7 @@ namespace SimpleCQRS
         }
     }
 
-    public class InventoryItemRenamed : Event
+    public class InventoryItemRenamed
     {
         public readonly Guid Id;
         public readonly string NewName;
@@ -41,7 +36,7 @@ namespace SimpleCQRS
         }
     }
 
-    public class ItemsCheckedInToInventory : Event
+    public class ItemsCheckedInToInventory
     {
         public Guid Id;
         public readonly int Count;
@@ -53,7 +48,7 @@ namespace SimpleCQRS
         }
     }
 
-    public class ItemsRemovedFromInventory : Event
+    public class ItemsRemovedFromInventory
     {
         public Guid Id;
         public readonly int Count;
@@ -65,4 +60,3 @@ namespace SimpleCQRS
         }
     }
 }
-

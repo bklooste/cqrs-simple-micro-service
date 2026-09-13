@@ -6,7 +6,7 @@ services:
     container_name: simplecqrs-redis-itest
     environment:
       - LOG_LEVEL=DEBUG
-      - ConnectionStrings:RedisConnection=redis:6379,allowAdmin=false     
+      - Streams:ConnectionString=redis:6379,allowAdmin=false
     ports:
       - 54105:80     
       

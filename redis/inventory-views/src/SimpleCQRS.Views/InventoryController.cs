@@ -1,8 +1,11 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
+
+using RedisEvents.EventSourcing;
 
 namespace SimpleCQRS.Views
 {
@@ -10,34 +13,39 @@ namespace SimpleCQRS.Views
     public class InventoryController : ControllerBase
     {
         readonly ILogger<InventoryController> logger;
-        readonly IReadOnlyList<InventoryItemListDto> inventoryListRepository; 
-        readonly IReadOnlyDictionary<Guid, InventoryItemDetailsDto> inventoryDetailRepository;
+        readonly IViewStore<InventoryItemListDto> inventoryListView;
+        readonly IViewStore<InventoryItemDetailsDto> inventoryDetailView;
 
-        public InventoryController(ILogger<InventoryController> logger, IReadOnlyList<InventoryItemListDto> inventoryListRepository, IReadOnlyDictionary<Guid, InventoryItemDetailsDto> inventoryDetailRepository)
+        public InventoryController(ILogger<InventoryController> logger, IViewStore<InventoryItemListDto> inventoryListView, IViewStore<InventoryItemDetailsDto> inventoryDetailView)
         {
             this.logger = logger;
-            this.inventoryDetailRepository = inventoryDetailRepository;
-            this.inventoryListRepository = inventoryListRepository;
+            this.inventoryDetailView = inventoryDetailView;
+            this.inventoryListView = inventoryListView;
         }
 
         [HttpGet("/items/")]
         [ProducesResponseType(typeof(InventoryItemListDto[]), 200)]
         [ProducesResponseType(500)]
-        public ActionResult ItemList()
-        {          
-            return Ok(inventoryListRepository);
+        public async Task<ActionResult> ItemList()
+        {
+            var items = new List<InventoryItemListDto>();
+            await foreach (var item in inventoryListView.ListAsync())
+                items.Add(item);
+
+            return Ok(items);
         }
 
-        [HttpGet("/items/{id}")] 
+        [HttpGet("/items/{id}")]
         [ProducesResponseType(typeof(InventoryItemDetailsDto), 200)]
         [ProducesResponseType(400)]
         [ProducesResponseType(500)]
-        public IActionResult Item(Guid id) 
+        public async Task<IActionResult> Item(Guid id)
         {
-            if (inventoryDetailRepository.TryGetValue(id, out var item))
+            var item = await inventoryDetailView.GetAsync(id.ToString());
+            if (item != null)
                 return Ok(item);
 
-            logger.LogDebug($"received request for unknown id {item}");
+            logger.LogDebug($"received request for unknown id {id}");
             return NotFound();
         }
     }

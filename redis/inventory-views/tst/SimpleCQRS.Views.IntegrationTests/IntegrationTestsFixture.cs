@@ -20,7 +20,7 @@ namespace SimpleCQRS.Views.IntegrationTest
         {
             var configDefaults = new Dictionary<string, string>
             {
-                {"ConnectionStrings:RedisConnection", "127.0.0.1:6479,allowAdmin=false"},
+                {"Streams:ConnectionString", "127.0.0.1:6479,allowAdmin=false"},
                 {"InventoryViewsServicePort", "54106"}
             };
 
@@ -29,7 +29,7 @@ namespace SimpleCQRS.Views.IntegrationTest
                 .AddEnvironmentVariables()
                 .Build();
 
-            var connectionString = config["ConnectionStrings:RedisConnection"];
+            var connectionString = config["Streams:ConnectionString"];
             this.redis = ConnectionMultiplexer.Connect(connectionString);
 
             this.StoreConnection = redis.GetDatabase();

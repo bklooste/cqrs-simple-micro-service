@@ -1,11 +1,10 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
+using System;
 using System.Threading.Tasks;
 
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
-using StackExchange.Redis;
+
+using RedisEvents.EventSourcing;
 
 namespace SimpleCQRS.API
 {
@@ -14,15 +13,15 @@ namespace SimpleCQRS.API
     public class InventoryCommandController : ControllerBase
     {
 
-        readonly ILogger<InventoryCommandController> logger; 
-        readonly IDatabase connection;
-        readonly ExternalLogic logic; 
+        readonly ILogger<InventoryCommandController> logger;
+        readonly IEventRepository repository;
+        readonly ExternalLogic logic;
 
-        public InventoryCommandController(ILogger<InventoryCommandController> logger, IDatabase connection)
+        public InventoryCommandController(ILogger<InventoryCommandController> logger, IEventRepository repository)
         {
             this.logger = logger;
-            this.connection = connection;
-            this.logic = new ExternalLogic(connection); 
+            this.repository = repository;
+            this.logic = new ExternalLogic();
             this.logger.LogDebug("InventoryCommandController invoked, Note core already does all request/ request time and failure logging");
         }
 
@@ -34,12 +33,16 @@ namespace SimpleCQRS.API
                 if (id == null)
                     id = Guid.NewGuid();
                 var bl = new InventoryItemLogic(id.Value, name);
-                await connection.Save(bl, -1 );
+                await repository.SaveAsync(bl, 0);
                 return NoContent();
             }
             catch (ArgumentException ex)
             {
                 return BadRequest(ex.Message);
+            }
+            catch (ConcurrencyException)
+            {
+                return Conflict();
             }
         }
 
@@ -48,18 +51,21 @@ namespace SimpleCQRS.API
         {
             try
             {
-                var inventoryItem = await connection.GetById<InventoryItemLogic>(id);
+                var inventoryItem = await repository.LoadAsync<InventoryItemLogic>(id.ToString());
+                if (inventoryItem == null)
+                    return NotFound();
+
                 inventoryItem.ChangeName(name);
-                await connection.Save(inventoryItem, version);
+                await repository.SaveAsync(inventoryItem, version);
                 return NoContent();
             }
             catch (ArgumentException ex)
             {
                 return BadRequest(ex.Message);
             }
-            catch (AggregateNotFoundException)
+            catch (ConcurrencyException)
             {
-                    return NotFound();
+                return Conflict();
             }
         }
 
@@ -68,40 +74,46 @@ namespace SimpleCQRS.API
         {
             try
             {
-                var inventoryItem = await connection.GetById<InventoryItemLogic>(id);
+                var inventoryItem = await repository.LoadAsync<InventoryItemLogic>(id.ToString());
+                if (inventoryItem == null)
+                    return NotFound();
+
                 inventoryItem.Deactivate();
-                await connection.Save(inventoryItem, version);
+                await repository.SaveAsync(inventoryItem, version);
                 return NoContent();
             }
             catch (InvalidOperationException ex)
             {
                 return BadRequest(ex.Message);
             }
-            catch (AggregateNotFoundException)
+            catch (ConcurrencyException)
             {
-                return NotFound();
+                return Conflict();
             }
         }
 
         [HttpPost]
         public async Task<ActionResult> CheckIn(Guid id, int number, int version)
         {
-            //Test its there in integration ! 
-            var price = this.logic.GetPrice(); 
+            //Test its there in integration !
+            var price = this.logic.GetPrice();
             try
             {
-                var inventoryItem = await connection.GetById<InventoryItemLogic>(id);
+                var inventoryItem = await repository.LoadAsync<InventoryItemLogic>(id.ToString());
+                if (inventoryItem == null)
+                    return NotFound();
+
                 inventoryItem.CheckIn(number, price);
-                await connection.Save(inventoryItem, version);
+                await repository.SaveAsync(inventoryItem, version);
                 return NoContent();
             }
             catch (InvalidOperationException ex)
             {
                 return BadRequest(ex.Message);
             }
-            catch (AggregateNotFoundException)
+            catch (ConcurrencyException)
             {
-                return NotFound();
+                return Conflict();
             }
         }
 
@@ -110,18 +122,21 @@ namespace SimpleCQRS.API
         {
             try
             {
-                var inventoryItem = await connection.GetById<InventoryItemLogic>(id);
+                var inventoryItem = await repository.LoadAsync<InventoryItemLogic>(id.ToString());
+                if (inventoryItem == null)
+                    return NotFound();
+
                 inventoryItem.Remove(number);
-                await connection.Save(inventoryItem, version);
+                await repository.SaveAsync(inventoryItem, version);
                 return NoContent();
             }
             catch (InvalidOperationException ex)
             {
                 return BadRequest(ex.Message);
             }
-            catch (AggregateNotFoundException)
+            catch (ConcurrencyException)
             {
-                return NotFound();
+                return Conflict();
             }
         }
 

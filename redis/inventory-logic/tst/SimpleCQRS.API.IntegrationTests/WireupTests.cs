@@ -1,13 +1,11 @@
 using System;
-using System.Linq;
 using System.Net.Http;
-using System.Text;
-using System.Threading;
 using System.Threading.Tasks;
 
 using AutoFixture.Xunit2;
 
-using Newtonsoft.Json;
+using RedisEvents.Producer;
+
 using StackExchange.Redis;
 using Xunit;
 
@@ -16,7 +14,7 @@ namespace SimpleCQRS.API.IntegrationTest
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE1006:Naming Styles", Justification = "Long test names")]
 
     //We also need to test wiring up
-    // this provides nearly all our this calls that code coverage as well as testing configuration 
+    // this provides nearly all our this calls that code coverage as well as testing configuration
     // Note the actual message correctness is tested in unit tests
     [Trait("Integration", "Local")]
     public class WireupTests : IClassFixture<IntegrationTestFixture>
@@ -34,56 +32,19 @@ namespace SimpleCQRS.API.IntegrationTest
         }
 
         // this test covers
-        // json convert called the correct message is written to the right place 
+        // the event actually being persisted to this aggregate's state stream in Redis
         [Theory, AutoData]
-         public async Task when_create_event_then_message_ends_up_in_in_store(Guid id, string itemName)
+        public async Task when_create_event_then_message_ends_up_in_in_store(Guid id, string itemName)
         {
             var result = await client.PostAsync($"http://localhost:54105/InventoryCommand/Add?name={itemName}&id={id}", null);
-            
+
             Assert.True(result.IsSuccessStatusCode);
             await Task.Delay(sleepMillisecondsDelay);
-            var streamName = $"inventory-InventoryItemLogic{id}";
-            var streamResult = await redisConnection.StreamRangeAsync(streamName, "0-0", "+", 1000);
-            var evntJson = streamResult
-                .Select(x => x.Values)
-                .Select(x => Encoding.UTF8.GetString(x.First(field => field.Name == "msg").Value))
-                .Select(json => (dynamic)JsonConvert.DeserializeObject<System.Dynamic.ExpandoObject>(json))
-                .ToList();
 
+            var stateKey = Outbox.StateKey("inventory", $"es:Inventory:{id}");
+            var length = await redisConnection.StreamLengthAsync(stateKey);
 
-            Assert.Single(streamResult);
-            var evnt = streamResult.First().Values;
-            Assert.Equal("SimpleCQRS.InventoryItemCreated",evnt.First(field => field.Name == "type").Value);
-            var jsonString = Encoding.UTF8.GetString(evnt.First(field => field.Name == "msg").Value);
-
-            dynamic jsonObject = JsonConvert.DeserializeObject<System.Dynamic.ExpandoObject>(jsonString);
-
-            Assert.Equal(id.ToString(), jsonObject.Id);
+            Assert.Equal(1, length);
         }
-
-        //Finish
-        //[Theory, AutoData]
-        //public async Task when_create_rename_event_then_message_ends_up_in_in_store(Guid id, string itemName)
-        //{
-        //    var result = await client.PostAsync($"http://localhost:54105/InventoryCommand/Add?name={itemName}&id={id}", null);
-
-        //    Assert.True(result.IsSuccessStatusCode);
-        //    await Task.Delay(sleepMillisecondsDelay);
-        //    var streamName = $"inventory-InventoryItemLogic{id}";
-        //    var streamResult = await redisConnection.StreamReadAsync(streamName, "0-0");
-        //    var evnts = streamResult
-        //        .Select(x => x.Values)
-        //        .Select(x => Encoding.UTF8.GetString(x.First(field => field.Name == "msg").Value))
-        //        .Select(json => (dynamic)JsonConvert.DeserializeObject<System.Dynamic.ExpandoObject>(json));
-
-        //    var types = streamResult
-        //   .Select(x => x.Values)
-        //   .Select(x => x.First(field => field.Name == "type").Value);
-
-        //    //Assert.True(evnt.Event.IsJson);
-        //    Assert.Contains("SimpleCQRS.InventoryItemRenamed", types);
-        //    Assert.Contains(evnts, x => x.Id == id.ToString());
-
-        //}
     }
 }

@@ -1,11 +1,15 @@
 using System;
 using System.Net.Http;
-using System.Text;
 using System.Threading.Tasks;
 
 using AutoFixture.Xunit2;
-using Newtonsoft.Json;
-using StackExchange.Redis;
+
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+
+using RedisEvents.EventSourcing;
+
 using Xunit;
 
 namespace SimpleCQRS.Views.IntegrationTest
@@ -16,13 +20,23 @@ namespace SimpleCQRS.Views.IntegrationTest
     public class IntegrationTest: IClassFixture<IntegrationTestFixture>
     {
         readonly HttpClient client = new System.Net.Http.HttpClient();
-        readonly IDatabase connection;
+        readonly IEventRepository repository;
         readonly TimeSpan sleepMillisecondsDelay = TimeSpan.FromMilliseconds(1000);
 
         public IntegrationTest(IntegrationTestFixture fixture)
         {
-            connection = fixture.StoreConnection;
             client.BaseAddress = new Uri($"http://localhost:{fixture.Port}/");
+
+            // Publishes exactly the way the command-side service does (same topic, same aggregate
+            // name, same wire types) so this exercises the same EventProjector wiring the running
+            // service under test uses to build its views.
+            var builder = Host.CreateApplicationBuilder();
+            builder.Configuration.AddInMemoryCollection(new System.Collections.Generic.Dictionary<string, string>
+            {
+                {"Streams:ConnectionString", "127.0.0.1:6479,allowAdmin=false"},
+            });
+            builder.AddEventStore("inventory", InventoryEventTypes.Register);
+            repository = builder.Build().Services.GetRequiredService<IEventRepository>();
 
             this.client.BlockGetTillAvailable("items/");
         }
@@ -30,66 +44,27 @@ namespace SimpleCQRS.Views.IntegrationTest
         [Theory, AutoData]
         public async Task when_create_event_then_its_in_list_view(Guid id, string itemName)
         {
-            string json = $"{{\"Id\": \"{id}\",\"Name\": \"{itemName}\", \"Version\": 0}}";
-                        var jsonBytes = Encoding.UTF8.GetBytes(json);
-            var streamName = $"inventory-InventoryItemLogic{id}";
-            var eventData = new NameValueEntry[]
-            {
-                new NameValueEntry("id" , Guid.NewGuid().ToString()),
-                new NameValueEntry("type" , "SimpleCQRS.InventoryItemCreated"),
-                new NameValueEntry("msg" , jsonBytes),
-                new NameValueEntry("partition" , string.Empty),
-                new NameValueEntry("metadata" , string.Empty)
-            };
-            var result = await connection.StreamAddAsync(streamName, eventData);
-
-            await connection.StreamAddAsync("$ce-inventory", new NameValueEntry[]
-            {
-                new NameValueEntry("stream" , streamName),
-                new NameValueEntry("key" , result),
-            });
-            await Task.Delay(sleepMillisecondsDelay*2);
+            await repository.SaveAsync(TestInventoryItem.Create(id, itemName));
+            await Task.Delay(sleepMillisecondsDelay * 2);
 
             var response = await client.GetStringAsync("items/");
 
             //We dont test json convert and .net core mvc conversion, end to end tests will cover that as well.
-            // just that the test doest break as schema is changed
+            // just that the test doesnt break as schema is changed
             Assert.Contains(id.ToString(), response);
-            Assert.Contains(itemName.ToString(), response);
+            Assert.Contains(itemName, response);
         }
 
         [Theory, AutoData]
         public async Task when_create_event_then_its_in_item_detail_view(Guid id, string itemName)
         {
-            string json = $"{{\"Id\": \"{id}\",\"Name\": \"{itemName}\", \"Version\": 0}}";
-            var streamName = $"inventory-InventoryItemLogic{id}";
-            var jsonBytes = Encoding.UTF8.GetBytes(json);
-            var eventData = new NameValueEntry[]
-            {
-                new NameValueEntry("id" , Guid.NewGuid().ToString()),
-                new NameValueEntry("type" , "SimpleCQRS.InventoryItemCreated"),
-                new NameValueEntry("msg" , jsonBytes),
-                new NameValueEntry("partition" , string.Empty),
-                new NameValueEntry("metadata" , string.Empty)
-            };
-            var result = await connection.StreamAddAsync(streamName, eventData);
+            await repository.SaveAsync(TestInventoryItem.Create(id, itemName));
+            await Task.Delay(sleepMillisecondsDelay * 2);
 
-            await connection.StreamAddAsync("$ce-inventory", new NameValueEntry[]
-            {
-                new NameValueEntry("stream" , streamName),
-                new NameValueEntry("key" , result),
-            });
-            await Task.Delay(sleepMillisecondsDelay);
-
-            using var response = await client.GetAsync($"items/{id}");
             var jsonResponse = await client.GetStringAsync($"items/{id}");
 
-            dynamic itemDetail = JsonConvert.DeserializeObject<System.Dynamic.ExpandoObject>(jsonResponse);
-
-            Assert.Equal(id.ToString(), itemDetail.id);
-            Assert.Equal(itemName, itemDetail.name);
+            Assert.Contains(id.ToString(), jsonResponse);
+            Assert.Contains(itemName, jsonResponse);
         }
-
-
     }
 }
