@@ -1,6 +1,6 @@
-using Microsoft.OpenApi;
-
 using RedisEvents.EventSourcing;
+
+using Scalar.AspNetCore;
 
 using SimpleCQRS.Views;
 
@@ -11,23 +11,30 @@ builder.AddEventProjector("inventory", InventoryEventTypes.Register)
        .AddProjection<InventoryProjection>();
 
 builder.Services.AddSingleton<IViewStore<InventoryItemListDto>, InMemoryViewStore<InventoryItemListDto>>();
-
-builder.Services.AddControllers();
-builder.Services.AddSwaggerGen(c =>
-{
-    c.SwaggerDoc("v1", new OpenApiInfo { Title = "My API", Version = "v1" });
-});
+builder.Services.AddOpenApi();
 
 var app = builder.Build();
 
-app.UseRouting();
+app.MapOpenApi();
+app.MapScalarApiReference();
 
-app.MapControllers();
-
-app.UseSwagger();
-app.UseSwaggerUI(c =>      //Swagger UI should be served from static container not service
+app.MapGet("/items/", async (IViewStore<InventoryItemListDto> inventoryListView) =>
 {
-    c.SwaggerEndpoint("/swagger/v1/swagger.json", $"Inventory View Service {app.Environment.EnvironmentName}");
+    var items = new List<InventoryItemListDto>();
+    await foreach (var item in inventoryListView.ListAsync())
+        items.Add(item);
+
+    return Results.Ok(items);
+});
+
+app.MapGet("/items/{id}", async (IViewStore<InventoryItemDetailsDto> inventoryDetailView, ILogger<Program> logger, Guid id) =>
+{
+    var item = await inventoryDetailView.GetAsync(id.ToString());
+    if (item != null)
+        return Results.Ok(item);
+
+    logger.LogDebug($"received request for unknown id {id}");
+    return Results.NotFound();
 });
 
 app.Run();
