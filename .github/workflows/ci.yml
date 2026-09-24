@@ -1,0 +1,33 @@
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Build all solutions
+        run: |
+          for sln in $(find . -name '*.sln'); do
+            echo "::group::build $sln"
+            dotnet build "$sln" -c Release
+            echo "::endgroup::"
+          done
+
+      # Integration tests need external infrastructure (Redis/EventStore), so only unit tests run here.
+      - name: Unit tests
+        run: |
+          for proj in $(find . -path '*/tst/*' \( -name '*.Test.csproj' -o -name '*.Tests.csproj' \)); do
+            echo "::group::test $proj"
+            dotnet test "$proj" -c Release
+            echo "::endgroup::"
+          done
