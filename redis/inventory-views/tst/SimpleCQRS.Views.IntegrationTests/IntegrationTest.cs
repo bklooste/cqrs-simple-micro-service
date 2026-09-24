@@ -9,6 +9,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
 using RedisEvents.EventSourcing;
+using RedisEvents.Projections;
 
 using Xunit;
 

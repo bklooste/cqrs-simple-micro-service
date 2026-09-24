@@ -2,6 +2,7 @@ using System.Threading;
 using System.Threading.Tasks;
 
 using RedisEvents.EventSourcing;
+using RedisEvents.Projections;
 
 using SimpleCQRS;
 

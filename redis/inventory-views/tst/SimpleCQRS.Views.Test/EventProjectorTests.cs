@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using AutoFixture.Xunit2;
 
 using RedisEvents.EventSourcing;
+using RedisEvents.Projections;
 using RedisEvents.Wire;
 
 using SimpleCQRS;

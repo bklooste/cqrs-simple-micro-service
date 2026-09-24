@@ -1,4 +1,5 @@
 using RedisEvents.EventSourcing;
+using RedisEvents.Projections;
 
 using Scalar.AspNetCore;
 

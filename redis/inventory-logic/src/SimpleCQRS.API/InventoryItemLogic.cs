@@ -1,6 +1,7 @@
 using System;
 
 using RedisEvents.EventSourcing;
+using RedisEvents.Projections;
 
 namespace SimpleCQRS.API
 {
