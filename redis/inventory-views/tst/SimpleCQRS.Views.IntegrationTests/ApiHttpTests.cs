@@ -1,48 +1,83 @@
-using System;
-using System.Net.Http;
-using System.Threading.Tasks;
+using System.Net;
 
-using AutoFixture.Xunit2;
-using Xunit;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 
-namespace SimpleCQRS.Views.IntegrationTest
+using RedisEvents.EventSourcing;
+using RedisEvents.Projections;
+
+namespace SimpleCQRS.Views.IntegrationTest;
+
+[Collection(nameof(ServiceTestCollection))]
+[Trait("Integration", "Local")]
+public class ApiHttpTests(Fixture fixture)
 {
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE1006:Naming Styles", Justification = "Long test names")]
-
-    [Trait("Integration", "Local")]
-    public class ApiHttpTests: IClassFixture<IntegrationTestFixture>
+    // Publishes exactly the way the command-side service does (same topic, same aggregate
+    // name, same wire types) so this exercises the same EventProjector wiring the running
+    // service under test uses to build its views.
+    Task Publish(Guid id, string name)
     {
-        readonly HttpClient client = new System.Net.Http.HttpClient();
-
-        public ApiHttpTests(IntegrationTestFixture fixture)
+        var builder = Host.CreateApplicationBuilder();
+        builder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
         {
-            client.BaseAddress = new Uri($"http://localhost:{fixture.Port}/");
+            ["Streams:ConnectionString"] = fixture.Config["Streams:ConnectionString"],
+        });
+        builder.AddEventStore("inventory", InventoryEventTypes.Register);
+        var repository = builder.Build().Services.GetRequiredService<IEventRepository>();
+        return repository.SaveAsync(TestInventoryItem.Create(id, name)).AsTask();
+    }
 
-            this.client.BlockGetTillAvailable("items/");
-        }
-        // if the service does security we can and should test here.
+    [Fact]
+    public Task when_get_unknown_item_then_return_404() =>
+        fixture.Scenario()
+            .When(Http.Get("items/{{guid}}"))
+            .ThenStatus(HttpStatusCode.NotFound)
+            .RunAsync();
 
-        [Theory, AutoData]
-        public async Task when_get_unknown_item_then_return_404(Guid id)
+    [Fact]
+    public async Task when_get_http2_then_ok()
+    {
+        using var http2Client = new HttpClient
         {
-            using var result = await client.GetAsync($"items/{id}");
+            DefaultRequestVersion = new Version(2, 0),
+            BaseAddress = new Uri(fixture.BaseUrl),
+        };
 
-            Assert.Equal(System.Net.HttpStatusCode.NotFound, result.StatusCode);
-        }
-
-
-        [Fact]
-        public async Task when_get_http2_then_ok()
+        await Eventually.Assert(async () =>
         {
-            using var http2Client = new System.Net.Http.HttpClient
-            {
-                DefaultRequestVersion = new Version(2, 0),
-                BaseAddress = client.BaseAddress
-            };
+            using var result = await http2Client.GetAsync("items/");
+            Assert.Equal(HttpStatusCode.OK, result.StatusCode);
+        }, TimeSpan.FromSeconds(10), "items list served over http/2");
+    }
 
-            var result = await http2Client.GetAsync($"items/");
+    // We dont test json conversion here (end to end tests cover that) - just that the test
+    // doesnt break as the schema is changed.
+    [Fact]
+    public Task when_create_event_then_its_in_list_view()
+    {
+        var id = Guid.NewGuid();
+        var name = "item-" + Guid.NewGuid();
 
-            Assert.Equal(System.Net.HttpStatusCode.OK, result.StatusCode);
-        }
+        return fixture.Scenario()
+            .With("id", id)
+            .With("name", name)
+            .When(_ => Publish(id, name))
+            .Then(Http.Get("items/").Eventually().Matches("""[ { "id": "{{id}}", "name": "{{name}}" } ]"""))
+            .RunAsync();
+    }
+
+    [Fact]
+    public Task when_create_event_then_its_in_item_detail_view()
+    {
+        var id = Guid.NewGuid();
+        var name = "item-" + Guid.NewGuid();
+
+        return fixture.Scenario()
+            .With("id", id)
+            .With("name", name)
+            .When(_ => Publish(id, name))
+            .Then(Http.Get("items/{{id}}").Eventually().Matches("""{ "id": "{{id}}", "name": "{{name}}" }"""))
+            .RunAsync();
     }
 }

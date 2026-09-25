@@ -1,34 +1,63 @@
-using System;
-using System.Net.Http;
-using System.Threading.Tasks;
+using System.Net;
 
-using AutoFixture.Xunit2;
-using Xunit;
+namespace Simple.Customers.IntegrationTest;
 
-namespace Simple.Customers.IntegrationTest
+[Collection(nameof(ServiceTestCollection))]
+[Trait("Integration", "Local")]
+public class ApiHttpTests(Fixture fixture)
 {
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE1006:Naming Styles", Justification = "Long test names")]
+    // if the service does security we can and should test here.
 
-    [Trait("Integration", "Local")]
-    public class ApiHttpTests : IClassFixture<IntegrationTestFixture>
+    [Fact]
+    public Task when_create_customer_without_lastname_then_bad_request() =>
+        fixture.Scenario()
+            .When(Http.Post("?firstName=first-{{guid}}&lastName="))
+            .ThenStatus(HttpStatusCode.BadRequest)
+            .RunAsync();
+
+    // The Get endpoint returns the customer as a json document inside a json string.
+    [Fact]
+    public Task when_create_customer_then_it_can_be_retrieved()
     {
-        readonly HttpClient client = new System.Net.Http.HttpClient();
+        var firstName = "first-" + Guid.NewGuid();
+        var lastName = "last-" + Guid.NewGuid();
 
-        public ApiHttpTests(IntegrationTestFixture fixture)
-        {
-            client.BaseAddress = new Uri($"http://localhost:{fixture.Port}/api/Customers/");
-
-            this.client.BlockGetTillAvailable("IsAvailable");
-        }
-
-        // if the service does security we can and should test here.
-
-        [Theory, AutoData]
-        public async Task when_create_customer_without_lastname_then_bad_request(string firstName)
-        {
-            var result = await client.PostAsync($"?firstName={Uri.EscapeDataString(firstName)}&lastName=", null);
-
-            Assert.Equal(System.Net.HttpStatusCode.BadRequest, result.StatusCode);
-        }
+        return fixture.Scenario()
+            .When(Http.Post($"?firstName={firstName}&lastName={lastName}"))
+            .Capture("id", "$")
+            .Then(Http.Get("{{id}}").BodyContains(firstName).BodyContains(lastName))
+            .RunAsync();
     }
+
+    [Fact]
+    public Task when_update_customer_then_changes_are_persisted()
+    {
+        var newFirstName = "newfirst-" + Guid.NewGuid();
+        var newLastName = "newlast-" + Guid.NewGuid();
+
+        return fixture.Scenario()
+            .Given(Http.Post("?firstName=first-{{guid}}&lastName=last-{{guid}}"))
+            .Capture("id", "$")
+            .When(Http.Put($"{{{{id}}}}/?firstName={newFirstName}&lastName={newLastName}"))
+            .Then(Http.Get("{{id}}").BodyContains(newFirstName).BodyContains(newLastName))
+            .RunAsync();
+    }
+
+    [Fact]
+    public Task when_update_unknown_customer_then_bad_request() =>
+        fixture.Scenario()
+            .When(Http.Put("{{guid}}/?firstName=first&lastName=last"))
+            .ThenStatus(HttpStatusCode.BadRequest)
+            .RunAsync();
+
+    // Covers the Marten compiled-query wiring, not just the plain CRUD path.
+    [Fact]
+    public Task when_searching_by_lastname_prefix_then_matching_customer_is_returned() =>
+        fixture.Scenario()
+            .With("lastName", "Wireup" + Guid.NewGuid().ToString("N"))
+            .Given(Http.Post("?firstName=first&lastName={{lastName}}"))
+            .Capture("id", "$")
+            .When(Http.Get("name=Wire"))
+            .Then(Http.Get("name={{lastName}}").Matches("""[ { "id": "{{id}}" } ]"""))
+            .RunAsync();
 }

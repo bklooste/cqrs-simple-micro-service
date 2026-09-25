@@ -1,34 +1,75 @@
-using System;
-using System.Net.Http;
-using System.Threading.Tasks;
+using System.Net;
+using System.Text;
+using System.Text.Json;
 
-using AutoFixture.Xunit2;
-using Xunit;
+using EventStore.Client;
 
-namespace SimpleCQRS.API.IntegrationTest
+namespace SimpleCQRS.API.IntegrationTest;
+
+[Collection(nameof(ServiceTestCollection))]
+[Trait("Integration", "Local")]
+public class ApiHttpTests(Fixture fixture)
 {
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE1006:Naming Styles", Justification = "Long test names")]
+    [Fact]
+    public Task when_add_with_empty_name_then_bad_request() =>
+        fixture.Scenario()
+            .When(Http.Post("Add?name=&id={{guid}}"))
+            .ThenStatus(HttpStatusCode.BadRequest)
+            .RunAsync();
 
-    [Trait("Integration", "Local")]
-    public class ApiHttpTests : IClassFixture<IntegrationTestFixture>
+    // Wire up: the event is written as json, with the right type, to the aggregate's stream.
+    [Fact]
+    public Task when_create_event_then_message_ends_up_in_in_store()
     {
-        readonly HttpClient client = new System.Net.Http.HttpClient();
+        var id = Guid.NewGuid();
 
-        public ApiHttpTests(IntegrationTestFixture fixture)
+        return fixture.Scenario()
+            .With("id", id)
+            .When(Http.Post("Add?name=item-{{id}}&id={{id}}"))
+            .ThenStatus(HttpStatusCode.NoContent)
+            .Then(async _ => await Eventually.Assert(async () =>
+            {
+                var events = await ReadAsync(Direction.Forwards, $"inventory-InventoryItemLogic{id}", 1000, resolveLinkTos: false);
+
+                var evnt = Assert.Single(events).Event;
+                Assert.Equal("application/json", evnt.ContentType);
+                Assert.Equal("SimpleCQRS.InventoryItemCreated", evnt.EventType);
+                Assert.Equal(id.ToString(), JsonDocument.Parse(evnt.Data).RootElement.GetProperty("Id").GetString());
+            }, TimeSpan.FromSeconds(10), "event stored"))
+            .RunAsync();
+    }
+
+    // The category stream ($ce-inventory) is what feeds the read model.
+    [Fact]
+    public Task when_create_event_then_its_in_category_stream_for_read_model()
+    {
+        var id = Guid.NewGuid();
+
+        return fixture.Scenario()
+            .With("id", id)
+            .When(Http.Post("Add?name=item-{{id}}&id={{id}}"))
+            .ThenStatus(HttpStatusCode.NoContent)
+            .Then(async _ => await Eventually.Assert(async () =>
+            {
+                var events = await ReadAsync(Direction.Backwards, "$ce-inventory", 20, resolveLinkTos: true);
+
+                Assert.Contains(events, e => Encoding.UTF8.GetString(e.Event.Data.Span).Contains(id.ToString()));
+            }, TimeSpan.FromSeconds(10), "event in category stream"))
+            .RunAsync();
+    }
+
+    async Task<List<ResolvedEvent>> ReadAsync(Direction direction, string stream, long count, bool resolveLinkTos)
+    {
+        var events = new List<ResolvedEvent>();
+        var start = direction == Direction.Forwards ? StreamPosition.Start : StreamPosition.End;
+        try
         {
-            client.BaseAddress = new Uri($"http://localhost:{fixture.Port}/InventoryCommand/");
-            
-            this.client.BlockGetTillAvailable("IsAvailable");
+            await foreach (var e in fixture.Store.ReadStreamAsync(direction, stream, start, count, resolveLinkTos))
+                events.Add(e);
         }
-
-        // if the service does security we can and should test here.
-
-        [Theory, AutoData]
-        public async Task when_create_event_then_its_in_store_in_correct_format(Guid id)
+        catch (StreamNotFoundException)
         {
-            var result = await client.PostAsync($"Add?name=&id={id}", null);
-            
-            Assert.Equal(System.Net.HttpStatusCode.BadRequest, result.StatusCode);
         }
+        return events;
     }
 }

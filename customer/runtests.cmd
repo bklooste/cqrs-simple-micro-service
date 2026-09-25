@@ -3,7 +3,7 @@ SET POSTGRES_CONNECTION=Host=host.docker.internal;Port=5432;Database=postgres;Us
 
 docker run --name cust-postgres -p 5432:5432 -e POSTGRES_PASSWORD=mysecretpassword -d postgres:16-alpine
 docker start cust-postgres
-docker run -d --name customer-itest -e "DOTNET_USE_POLLING_FILE_WATCHER=1" -e ConnectionStrings:PostgresConnection=%POSTGRES_CONNECTION%  -p %CustomerServicePort%:80 customer:latest
+docker run -d --name customer-itest -e "DOTNET_USE_POLLING_FILE_WATCHER=1" -e ConnectionStrings:PostgresConnection=%POSTGRES_CONNECTION%  -p %CustomerServicePort%:8080 customer:latest
 docker start customer-itest
 timeout 15
 dotnet test
