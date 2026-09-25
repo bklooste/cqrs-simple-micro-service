@@ -1,31 +1,15 @@
-using System;
-using System.Collections.Generic;
+namespace Simple.Customers.IntegrationTest;
 
-using Microsoft.Extensions.Configuration;
-
-namespace Simple.Customers.IntegrationTest
+// Runs against the containers started by runtests.cmd: the customer API on 54104 (backed by Postgres).
+// SvcHttpUrl can be overridden with an environment variable.
+public sealed class Fixture() : ServiceTestFixture(new ServiceTestOptions
 {
-    public class IntegrationTestFixture : IDisposable
+    HealthPath = "IsAvailable",
+    Config = new Dictionary<string, string?>
     {
-        readonly IConfiguration config;
+        [BaseUrlKey] = "http://localhost:54104/api/Customers/",
+    },
+});
 
-        public int Port => int.Parse(config["CustomerServicePort"]);
-
-        public IntegrationTestFixture()
-        {
-            var configDefaults = new Dictionary<string, string>
-            {
-                {"CustomerServicePort", "54104"}
-            };
-
-            this.config = new ConfigurationBuilder()
-                .AddInMemoryCollection(configDefaults)
-                .AddEnvironmentVariables()
-                .Build();
-        }
-
-        public void Dispose()
-        {
-        }
-    }
-}
+[CollectionDefinition(nameof(ServiceTestCollection))]
+public sealed class ServiceTestCollection : ICollectionFixture<Fixture>;

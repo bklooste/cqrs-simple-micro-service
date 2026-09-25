@@ -1,43 +1,29 @@
-using System;
-
-using Microsoft.Extensions.Configuration;
-
 using EventStore.Client;
-using System.Collections.Generic;
 
-namespace SimpleCQRS.API.IntegrationTest
+namespace SimpleCQRS.API.IntegrationTest;
+
+// Runs against the containers started by runtests.cmd: the API on 53104 and EventStore on 2114.
+// SvcHttpUrl / ConnectionStrings:EventStoreConnection can be overridden with environment variables.
+public sealed class Fixture() : ServiceTestFixture(new ServiceTestOptions
 {
-    public class IntegrationTestFixture : IDisposable
+    HealthPath = "IsAvailable",
+    Config = new Dictionary<string, string?>
     {
-        readonly IConfiguration config;
+        [BaseUrlKey] = "http://localhost:53104/InventoryCommand/",
+        ["ConnectionStrings:EventStoreConnection"] = "esdb://admin:changeit@127.0.0.1:2114?tls=false",
+    },
+})
+{
+    EventStoreClient? store;
 
-        public EventStoreClient StoreConnection { get; }
-        public int Port=> int.Parse(config["InventoryLogicServicePort"]);
+    public EventStoreClient Store => store ??= new EventStoreClient(EventStoreClientSettings.Create(Config["ConnectionStrings:EventStoreConnection"]!));
 
-
-        public IntegrationTestFixture()
-        {
-            var configDefaults = new Dictionary<string, string>
-            {
-                {"ConnectionStrings:EventStoreConnection", "esdb://admin:changeit@127.0.0.1:2114?tls=false"},
-                {"InventoryLogicServicePort", "53104"}
-            };
-
-            this.config = new ConfigurationBuilder()
-                .AddInMemoryCollection(configDefaults)
-                .AddEnvironmentVariables()
-                .Build();
-
-            var connection = config["ConnectionStrings:EventStoreConnection"];
-
-            var settings = EventStoreClientSettings.Create(connection);
-            settings.ConnectionName = "integrationTests";
-            this.StoreConnection = new EventStoreClient(settings);
-        }
-
-        public void Dispose()
-        {
-            StoreConnection.Dispose();
-        }
+    public override async ValueTask DisposeAsync()
+    {
+        store?.Dispose();
+        await base.DisposeAsync();
     }
 }
+
+[CollectionDefinition(nameof(ServiceTestCollection))]
+public sealed class ServiceTestCollection : ICollectionFixture<Fixture>;

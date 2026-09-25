@@ -4,7 +4,7 @@ SET InventoryViewsServicePort=53105
 
 docker run -d --name eventstore-views-itest -p %EVENTSTORE_HOST_GRPC_PORT%:2113 -e EVENTSTORE_INSECURE=true -e EVENTSTORE_CLUSTER_SIZE=1 -e EVENTSTORE_RUN_PROJECTIONS=All -e EVENTSTORE_START_STANDARD_PROJECTIONS=true -e EVENTSTORE_MEM_DB=true eventstore/eventstore:23.10.1-bookworm-slim
 docker start eventstore-views-itest
-docker run -d --name simplecqrs-views-itest -e "DOTNET_USE_POLLING_FILE_WATCHER=1" -e ConnectionStrings:EventStoreConnection=%EVENTSTORE_CONNECTION%  -p %InventoryViewsServicePort%:80 simplecqrsviews:latest
+docker run -d --name simplecqrs-views-itest -e "DOTNET_USE_POLLING_FILE_WATCHER=1" -e ConnectionStrings:EventStoreConnection=%EVENTSTORE_CONNECTION%  -p %InventoryViewsServicePort%:8080 simplecqrsviews:latest
 docker start simplecqrs-views-itest
 timeout 15
 dotnet test

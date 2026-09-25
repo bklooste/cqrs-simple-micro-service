@@ -8,7 +8,7 @@ services:
       - LOG_LEVEL=DEBUG
       - Streams:ConnectionString=redis:6379,allowAdmin=false
     ports:
-      - 54105:80     
+      - 54105:8080
       
   redis:
     image: redis:alpine

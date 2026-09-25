@@ -1,45 +1,17 @@
-﻿using System;
-using System.Collections.Generic;
-using Microsoft.Extensions.Configuration;
+namespace SimpleCQRS.API.IntegrationTest;
 
-
-
-using StackExchange.Redis;
-
-namespace SimpleCQRS.API.IntegrationTest
+// Runs against the docker-compose stack (runtests.cmd): the API on 54105 and Redis on 6479.
+// SvcHttpUrl / Streams:ConnectionString can be overridden with environment variables.
+public sealed class Fixture() : ServiceTestFixture(new ServiceTestOptions
 {
-    public class IntegrationTestFixture : IDisposable
+    HealthPath = "IsAvailable",
+    Config = new Dictionary<string, string?>
     {
-        readonly IConfiguration config;
-        private ConnectionMultiplexer redis;
+        [BaseUrlKey] = "http://localhost:54105/InventoryCommand/",
+        ["Streams:ConnectionString"] = "127.0.0.1:6479,allowAdmin=false",
+    },
+    Features = [new RedisFeature()],
+});
 
-        public IDatabase StoreConnection { get; }
-        public int Port=> int.Parse(config["InventoryLogicServicePort"]);
-
-
-        public IntegrationTestFixture() 
-        {
-            var configDefaults = new Dictionary<string, string>
-            {
-                {"Streams:ConnectionString", "127.0.0.1:6479,allowAdmin=false"},
-                {"InventoryLogicServicePort", "54105"}
-            };
-
-            this.config = new ConfigurationBuilder()
-                .AddInMemoryCollection(configDefaults)
-                .AddEnvironmentVariables()
-                .Build();
-
-            
-            var connectionString = config["Streams:ConnectionString"];
-            this.redis = ConnectionMultiplexer.Connect(connectionString);
-
-            this.StoreConnection = redis.GetDatabase();
-        }
-
-        public void Dispose()
-        {
-            redis.Dispose();
-        }
-    }
-}
+[CollectionDefinition(nameof(ServiceTestCollection))]
+public sealed class ServiceTestCollection : ICollectionFixture<Fixture>;

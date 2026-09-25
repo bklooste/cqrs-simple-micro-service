@@ -1,34 +1,38 @@
-using System;
-using System.Net.Http;
-using System.Threading.Tasks;
+using System.Net;
 
-using AutoFixture.Xunit2;
-using Xunit;
+using RedisEvents.Producer;
 
-namespace SimpleCQRS.API.IntegrationTest
+namespace SimpleCQRS.API.IntegrationTest;
+
+[Collection(nameof(ServiceTestCollection))]
+[Trait("Integration", "Local")]
+public class ApiHttpTests(Fixture fixture)
 {
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE1006:Naming Styles", Justification = "Long test names")]
+    [Fact]
+    public Task when_add_with_empty_name_then_bad_request() =>
+        fixture.Scenario()
+            .When(Http.Post("Add?name=&id={{guid}}"))
+            .ThenStatus(HttpStatusCode.BadRequest)
+            .RunAsync();
 
-    [Trait("Integration", "Local")]
-    public class ApiHttpTests : IClassFixture<IntegrationTestFixture>
+    // The event is persisted to the aggregate's own state stream. The read side's propagation
+    // is covered by the inventory-views integration tests.
+    [Fact]
+    public async Task when_create_event_then_its_in_store_in_correct_format()
     {
-        readonly HttpClient client = new System.Net.Http.HttpClient();
+        var id = Guid.NewGuid();
 
-        public ApiHttpTests(IntegrationTestFixture fixture)
-        {
-            client.BaseAddress = new Uri($"http://localhost:{fixture.Port}/InventoryCommand/");
-            
-            this.client.BlockGetTillAvailable("IsAvailable");
-        }
-
-        // if the service does security we can and should test here.
-
-        [Theory, AutoData]
-        public async Task when_create_event_then_its_in_store_in_correct_format(Guid id)
-        {
-            var result = await client.PostAsync($"Add?name=&id={id}", null);
-            
-            Assert.Equal(System.Net.HttpStatusCode.BadRequest, result.StatusCode);
-        }
+        await fixture.Scenario()
+            .With("id", id)
+            .When(Http.Post("Add?name=item-{{id}}&id={{id}}"))
+            .ThenStatus(HttpStatusCode.NoContent)
+            .Then(async _ =>
+            {
+                var db = await fixture.Feature<RedisFeature>().DatabaseAsync();
+                var stateKey = Outbox.StateKey("inventory", $"es:Inventory:{id}");
+                await Eventually.Assert(async () =>
+                    Assert.Equal(1, await db.StreamLengthAsync(stateKey)), TimeSpan.FromSeconds(10), "state stream written");
+            })
+            .RunAsync();
     }
 }
